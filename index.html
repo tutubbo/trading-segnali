@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Segnale MES/ES</title>
+<title>Segnale MES/ES — Live</title>
 <link rel="preconnect" href="https://s3.tradingview.com" crossorigin>
 <link rel="preconnect" href="https://www.tradingview-widget.com" crossorigin>
 <style>
@@ -27,7 +27,6 @@
   a { color: var(--blue); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
-  /* ── Header ─────────────────────────────── */
   header {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
@@ -47,58 +46,46 @@
 
   .tape { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
 
-  /* ── Banner azione ──────────────────────── */
   .action-banner {
-    border-radius: var(--radius); padding: 22px 24px; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px; border: 1px solid var(--border);
     display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
   }
   .action-banner.LONG  { background: linear-gradient(135deg, #052e16, #0b3a20); border-color: #14532d; }
   .action-banner.SHORT { background: linear-gradient(135deg, #3f1216, #4c1116); border-color: #7f1d1d; }
   .action-banner.WAIT  { background: linear-gradient(135deg, #422006, #4a2a08); border-color: #713f12; }
-  .action-word { font-size: 52px; font-weight: 900; letter-spacing: 2px; line-height: 1; }
+  .action-word { font-size: 50px; font-weight: 900; letter-spacing: 2px; line-height: 1; }
   .LONG  .action-word { color: var(--green); }
   .SHORT .action-word { color: var(--red); }
   .WAIT  .action-word { color: var(--amber); }
   .action-meta { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
-  .action-meta .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .action-meta .big { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .action-meta .dim { color: var(--muted); font-size: 13px; }
-  .action-when { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+  .action-when { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--muted); max-width: 340px; line-height: 1.55; }
   .action-when b { color: var(--text); }
 
-  /* ── Card ───────────────────────────────── */
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-  .card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px;
-  }
-  .card h2 {
-    font-size: 12.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-    margin-bottom: 12px; font-weight: 700;
-  }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
   .full { grid-column: 1 / -1; }
 
-  /* Piano d'ingresso */
-  .plan-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .plan-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 15px; flex-wrap: wrap; }
   .plan-row:last-child { border-bottom: none; }
   .plan-row .lbl { color: var(--muted); }
   .plan-row b { font-variant-numeric: tabular-nums; }
   .plan-row .sub { font-size: 12.5px; color: var(--muted); }
-  .noplan { font-size: 15px; line-height: 1.6; color: var(--amber); font-weight: 600; padding: 8px 0; }
+  .noplan { font-size: 15px; line-height: 1.65; padding: 4px 0; }
+  .noplan b { color: var(--amber); }
+  .noplan .why { color: var(--muted); font-size: 13.5px; font-weight: 400; display: block; margin-top: 6px; }
 
-  /* Livelli */
   .lvl-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
   .lvl-row:last-child { border-bottom: none; }
   .lvl-row span:first-child { color: var(--muted); }
   .lvl-row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  /* Scorecard */
   .sc-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
   .sc-row:last-child { border-bottom: none; }
-  .sc-tag {
-    flex: 0 0 86px; text-align: center; font-size: 11.5px; font-weight: 800; padding: 4px 0;
-    border-radius: 7px; letter-spacing: .5px;
-  }
+  .sc-tag { flex: 0 0 86px; text-align: center; font-size: 11.5px; font-weight: 800; padding: 4px 0; border-radius: 7px; letter-spacing: .5px; }
   .sc-tag.PASS, .sc-tag.BULLISH { background: #052e16; color: var(--green); }
   .sc-tag.FAIL, .sc-tag.BEARISH { background: #3f1216; color: var(--red); }
   .sc-tag.NEUTRAL { background: var(--panel2); color: var(--muted); }
@@ -106,7 +93,6 @@
   .sc-body b { display: block; margin-bottom: 1px; }
   .sc-body span { color: var(--muted); font-size: 13px; }
 
-  /* Testi */
   .prose { font-size: 14.5px; line-height: 1.7; }
   ul.todo { list-style: none; }
   ul.todo li { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.55; }
@@ -124,9 +110,18 @@
   .storico div:last-child { border-bottom: none; }
   .storico b.LONG { color: var(--green); } .storico b.SHORT { color: var(--red); } .storico b.WAIT { color: var(--amber); }
 
+  .sect {
+    display: flex; align-items: center; gap: 10px; margin-top: 6px;
+    font-size: 13px; font-weight: 800; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase;
+  }
+  .sect::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
   .rules { font-size: 13px; color: var(--muted); line-height: 1.8; }
   .disclaimer { text-align: center; font-size: 11px; color: var(--muted); padding: 8px 0 14px; line-height: 1.6; }
   .err { background: #3f1216; border: 1px solid #7f1d1d; color: #fca5a5; padding: 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.6; }
+  .note { font-size: 11.5px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
@@ -164,17 +159,45 @@
     </div>
   </div>
 
-  <div id="app"></div>
+  <div class="sect"><span class="live-dot"></span> Segnale live — si ricalcola ogni 60 secondi</div>
+  <div id="live"><div class="card">Carico i dati di mercato…</div></div>
+
+  <div class="sect">Analisi completa + news (di Claude, più volte al giorno)</div>
+  <div id="claude"><div class="card">Carico l'ultima analisi…</div></div>
+
+  <div class="card">
+    <h2>Regole fisse di rischio</h2>
+    <div class="rules">
+      ▸ Rischio massimo per trade: $20–60 su 1 MES (il motore scarta da solo i trade con stop più largo)<br>
+      ▸ Massimo 3 trade al giorno — 2 perdite di fila = stop per oggi<br>
+      ▸ Mai in posizione durante CPI, NFP o FOMC (leggi la sezione news qui sopra)<br>
+      ▸ Nessun setup chiaro = WAIT — il motore aspetta che TUTTE le condizioni siano allineate
+    </div>
+  </div>
 
   <div class="disclaimer">
     Solo paper trading a scopo educativo — non è un consiglio finanziario. I futures sono strumenti a leva:
-    puoi perdere più del deposito iniziale. Non usare mai denaro reale basandoti solo su segnali generati dall'AI.
+    puoi perdere più del deposito iniziale. Il segnale live è calcolato matematicamente da indicatori su dati
+    gratuiti con ~10 minuti di ritardo: verifica sempre sul tuo grafico prima di agire. Non usare mai denaro reale
+    basandoti solo su segnali automatici.
   </div>
 </div>
 
 <script src="segnale.js"></script>
 <script>
-/* ═══ Orologio e sessione (ora di New York, tutto in locale) ═══ */
+'use strict';
+/* ════════════════════════════════════════════════════════════════
+   COSTANTI
+   ════════════════════════════════════════════════════════════════ */
+const SB_URL = 'https://tpfgzbevpzpmlbzldihe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwZmd6YmV2cHpwbWxiemxkaWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODg0NTcsImV4cCI6MjA5ODc2NDQ1N30.fb3W1SGPqn4dyFOoRrdyr0UYX44XsI4iFIE51AFyG38';
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const P = (n) => n.toFixed(2);
+const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
+
+/* ════════════════════════════════════════════════════════════════
+   OROLOGIO E SESSIONE (ora di New York)
+   ════════════════════════════════════════════════════════════════ */
 function tzParts(tz) {
   const s = new Intl.DateTimeFormat('en-GB', {
     timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
@@ -226,99 +249,297 @@ function tick() {
 tick();
 setInterval(tick, 1000);
 
-/* ═══ Rendering del segnale (da segnale.js) ═══ */
-const $ = (v) => '$' + v.toFixed(2).replace(/\.00$/, '');
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-function renderPiano(sig) {
-  if (!sig.piano) {
-    return '<div class="noplan">Nessun trade da fare adesso.<br>' +
-      '<span style="color:var(--muted);font-weight:400;font-size:13.5px;">Guarda la lista "Cosa fare adesso" qui sotto: quando le condizioni cambiano, chiedi a Claude un nuovo segnale.</span></div>';
+/* ════════════════════════════════════════════════════════════════
+   INDICATORI
+   ════════════════════════════════════════════════════════════════ */
+function ema(values, period) {
+  const k = 2 / (period + 1);
+  const out = [values[0]];
+  for (let i = 1; i < values.length; i++) out.push(values[i] * k + out[i - 1] * (1 - k));
+  return out;
+}
+function macdOf(closes) {
+  const e12 = ema(closes, 12), e26 = ema(closes, 26);
+  const line = closes.map((_, i) => e12[i] - e26[i]);
+  const signal = ema(line, 9);
+  const hist = line.map((v, i) => v - signal[i]);
+  const n = closes.length - 1;
+  return { line: line[n], signal: signal[n], hist: hist[n], histPrev: hist[n - 1] };
+}
+function rsiOf(closes, period) {
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) gain += d; else loss -= d;
   }
-  const p = sig.piano;
-  const e = parseFloat(p.entrata), st = parseFloat(p.stop);
-  const t1 = parseFloat(p.target1), t2 = p.target2 ? parseFloat(p.target2) : null;
-  const rPts = Math.abs(e - st);
-  const g1 = Math.abs(t1 - e), g2 = t2 !== null ? Math.abs(t2 - e) : null;
-  let html =
-    '<div class="plan-row"><span class="lbl">Entrata</span><b>' + e.toFixed(2) + '</b></div>' +
-    '<div class="plan-row"><span class="lbl">Stop (perdita massima)</span><span><b style="color:var(--red)">' + st.toFixed(2) + '</b> <span class="sub">' + rPts.toFixed(2) + ' pt = −' + $(rPts * 5) + ' MES (−' + $(rPts * 50) + ' ES)</span></span></div>' +
-    '<div class="plan-row"><span class="lbl">Target 1</span><span><b style="color:var(--green)">' + t1.toFixed(2) + '</b> <span class="sub">' + g1.toFixed(2) + ' pt = +' + $(g1 * 5) + ' MES (+' + $(g1 * 50) + ' ES)</span></span></div>';
-  if (t2 !== null) html +=
-    '<div class="plan-row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + t2.toFixed(2) + '</b> <span class="sub">' + g2.toFixed(2) + ' pt = +' + $(g2 * 5) + ' MES (+' + $(g2 * 50) + ' ES)</span></span></div>';
-  html += '<div class="plan-row"><span class="lbl">Rischio / Rendimento</span><b>1 : ' + (rPts > 0 ? (g1 / rPts).toFixed(1) : '—') + '</b></div>';
-  return html;
+  gain /= period; loss /= period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    gain = (gain * (period - 1) + Math.max(d, 0)) / period;
+    loss = (loss * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  if (loss === 0) return 100;
+  return 100 - 100 / (1 + gain / loss);
 }
 
-function render(signals, fonte) {
-  const app = document.getElementById('app');
+/* ════════════════════════════════════════════════════════════════
+   PREPARAZIONE BARRE (epoch → ora di New York)
+   ════════════════════════════════════════════════════════════════ */
+const etFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false
+});
+function toBars(d) {
+  const bars = [];
+  for (let i = 0; i < d.t.length; i++) {
+    if (d.c[i] == null || d.v[i] == null) continue;
+    const parts = etFmt.formatToParts(new Date(d.t[i] * 1000));
+    const g = t => parts.find(p => p.type === t).value;
+    bars.push({
+      t: d.t[i], o: d.o[i], h: d.h[i], l: d.l[i], c: d.c[i], v: d.v[i],
+      dayKey: g('year') + '-' + g('month') + '-' + g('day'),
+      mins: (+g('hour') % 24) * 60 + (+g('minute'))
+    });
+  }
+  return bars;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOTORE DEL SEGNALE — le regole dello script SIGNAL DECK
+   ════════════════════════════════════════════════════════════════ */
+function analizza(d) {
+  const bars = toBars(d);
+  if (bars.length < 60) return { errore: 'dati insufficienti' };
+  const last = bars[bars.length - 1];
+  const price = d.price || last.c;
+
+  const nowET = tzParts('America/New_York');
+  const nowMins = nowET.h * 60 + nowET.m;
+  const sess = sessionAt(nowET.day, nowMins);
+  const inRTH = sess.code === 'rth';
+
+  /* Giornate RTH (9:30–16:00 NY) per i livelli di ieri */
+  const rthDays = {};
+  for (const b of bars) {
+    if (b.mins >= 570 && b.mins < 960) {
+      (rthDays[b.dayKey] = rthDays[b.dayKey] || []).push(b);
+    }
+  }
+  const dayKeys = Object.keys(rthDays).sort();
+  const todayET = etFmt.formatToParts(new Date()).reduce((a, p) => { a[p.type] = p.value; return a; }, {});
+  const todayKey = todayET.year + '-' + todayET.month + '-' + todayET.day;
+  let pdKey;
+  if (inRTH && rthDays[todayKey]) pdKey = dayKeys[dayKeys.indexOf(todayKey) - 1];
+  else pdKey = dayKeys[dayKeys.length - 1] === todayKey && dayKeys.length > 1 && inRTH === false && nowMins < 570
+    ? dayKeys[dayKeys.length - 2] : dayKeys[dayKeys.length - 1];
+  if (pdKey === todayKey && inRTH) pdKey = dayKeys[dayKeys.indexOf(todayKey) - 1];
+  const pd = rthDays[pdKey] || [];
+  const pdh = pd.length ? Math.max(...pd.map(b => b.h)) : null;
+  const pdl = pd.length ? Math.min(...pd.map(b => b.l)) : null;
+  const pdc = pd.length ? pd[pd.length - 1].c : null;
+
+  /* Sessione Globex corrente (dalle 18:00 NY) → overnight high/low */
+  let gStart = bars.length - 1;
+  for (let i = bars.length - 1; i > 0; i--) {
+    const prev = bars[i - 1], cur = bars[i];
+    if (prev.mins < 1080 && cur.mins >= 1080 && prev.dayKey === cur.dayKey) { gStart = i; break; }
+    if (cur.mins >= 1080 && prev.mins >= 1080 && prev.dayKey !== cur.dayKey) { gStart = i; break; }
+    if (i === 1) gStart = 0;
+  }
+  const overnight = bars.slice(gStart).filter(b => b.mins >= 1080 || b.mins < 570);
+  const onH = overnight.length ? Math.max(...overnight.map(b => b.h)) : null;
+  const onL = overnight.length ? Math.min(...overnight.map(b => b.l)) : null;
+
+  /* VWAP: in RTH dalla apertura 9:30 di oggi; altrimenti dall'inizio Globex */
+  let vwapBars, vwapLabel;
+  if (inRTH && rthDays[todayKey]) { vwapBars = rthDays[todayKey]; vwapLabel = 'VWAP (da apertura 15:30 it.)'; }
+  else { vwapBars = bars.slice(gStart); vwapLabel = inRTH ? 'VWAP sessione' : 'VWAP ultima sessione'; }
+  let pv = 0, vv = 0;
+  for (const b of vwapBars) { const tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vv += b.v; }
+  const vwap = vv > 0 ? pv / vv : null;
+
+  /* Indicatori sulle ultime 200 barre da 5 minuti */
+  const closes = bars.slice(-200).map(b => b.c);
+  const macd = macdOf(closes);
+  const rsi = rsiOf(closes.slice(-80), 14);
+  const dist = vwap !== null ? price - vwap : 0;
+
+  /* Freschezza dei dati */
+  const ageMin = (Date.now() / 1000 - last.t) / 60;
+
+  const out = {
+    price, pdh, pdl, pdc, onH, onL, vwap, vwapLabel, macd, rsi, dist, sess,
+    ageMin, lastBarTime: last.t, azione: 'WAIT', fiducia: 'MEDIA', motivo: '', piano: null, tipo: ''
+  };
+
+  /* ── Regole di esclusione ── */
+  if (sess.code === 'closed') { out.motivo = 'Mercato chiuso. Il motore riparte da solo alla riapertura (guarda il countdown in alto).'; return out; }
+  if (ageMin > 25) { out.motivo = 'Dati di mercato non aggiornati (ultima barra di ' + Math.round(ageMin) + ' minuti fa): niente segnale senza dati freschi.'; return out; }
+  if (inRTH && nowMins < 585) { out.motivo = 'Range di apertura in formazione (primi 15 minuti): mai entrare prima delle 15:45 italiane.'; return out; }
+  if (vwap === null) { out.motivo = 'VWAP non calcolabile: dati volume mancanti.'; return out; }
+
+  /* ── Decisione ── */
+  const macdLong = macd.line > macd.signal;
+  const expanding = Math.abs(macd.hist) > Math.abs(macd.histPrev);
+
+  let dir = null;
+  if (rsi >= 70 && dist >= 8) { dir = 'SHORT'; out.tipo = 'ritorno al VWAP (ipercomprato)'; out.fiducia = 'MEDIA'; }
+  else if (rsi <= 30 && dist <= -8) { dir = 'LONG'; out.tipo = 'ritorno al VWAP (ipervenduto)'; out.fiducia = 'MEDIA'; }
+  else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) {
+    dir = 'LONG'; out.tipo = 'trend rialzista confermato';
+    out.fiducia = expanding && rsi <= 62 ? 'ALTA' : 'MEDIA';
+  }
+  else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) {
+    dir = 'SHORT'; out.tipo = 'trend ribassista confermato';
+    out.fiducia = expanding && rsi >= 38 ? 'ALTA' : 'MEDIA';
+  }
+
+  if (!dir) {
+    const perche = [];
+    if (Math.abs(dist) < 2) perche.push('prezzo incollato al VWAP (nessuna direzione)');
+    else if (price > vwap && !macdLong) perche.push('prezzo sopra il VWAP ma MACD ribassista: segnali in disaccordo');
+    else if (price < vwap && macdLong) perche.push('prezzo sotto il VWAP ma MACD rialzista: segnali in disaccordo');
+    if (rsi > 68 && dist < 8) perche.push('RSI ipercomprato (' + rsi.toFixed(0) + ') ma non abbastanza lontano dal VWAP per il ritorno');
+    if (rsi < 32 && dist > -8) perche.push('RSI ipervenduto (' + rsi.toFixed(0) + ') ma non abbastanza lontano dal VWAP per il ritorno');
+    if (!perche.length) perche.push('condizioni non tutte allineate (MACD, RSI e VWAP devono confermarsi a vicenda)');
+    out.motivo = perche.join('; ') + '.';
+    return out;
+  }
+
+  /* ── Piano: stop su swing recente, rischio obbligatorio $20–60 ── */
+  const recenti = bars.slice(-6);
+  let stop, risk;
+  if (dir === 'LONG') { stop = Math.min(...recenti.map(b => b.l)) - 0.5; risk = price - stop; }
+  else { stop = Math.max(...recenti.map(b => b.h)) + 0.5; risk = stop - price; }
+  if (risk < 4) { risk = 4; stop = dir === 'LONG' ? price - 4 : price + 4; }
+  if (risk > 12) {
+    out.motivo = 'Setup ' + out.tipo + ' presente, ma lo stop naturale è a ' + risk.toFixed(2) +
+      ' punti (' + USD(risk, 5) + ' di rischio): oltre il limite di $60. Trade troppo rischioso = WAIT.';
+    return out;
+  }
+  const sgn = dir === 'LONG' ? 1 : -1;
+  out.azione = dir;
+  out.piano = {
+    entrata: price, stop, risk,
+    t1: price + sgn * 1.5 * risk,
+    t2: price + sgn * 2.5 * risk
+  };
+  if (sess.code !== 'rth') out.fiducia = 'BASSA';
+  return out;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER SEGNALE LIVE
+   ════════════════════════════════════════════════════════════════ */
+function scTag(esito) { return '<div class="sc-tag ' + esito + '">' + esito + '</div>'; }
+
+function renderLive(a) {
+  const box = document.getElementById('live');
+  if (a.errore) {
+    box.innerHTML = '<div class="err">Dati live non disponibili (' + esc(a.errore) + '). Riprovo tra 60 secondi. La sezione qui sotto con l\'analisi di Claude resta valida.</div>';
+    return;
+  }
+  const oraIT = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date());
+
+  let pianoHtml;
+  if (a.piano) {
+    const p = a.piano;
+    pianoHtml =
+      '<div class="plan-row"><span class="lbl">Entrata (' + esc(a.tipo) + ')</span><b>' + P(p.entrata) + '</b></div>' +
+      '<div class="plan-row"><span class="lbl">Stop</span><span><b style="color:var(--red)">' + P(p.stop) + '</b> <span class="sub">' + P(p.risk) + ' pt = −' + USD(p.risk, 5) + ' MES (−' + USD(p.risk, 50) + ' ES)</span></span></div>' +
+      '<div class="plan-row"><span class="lbl">Target 1 (chiudi metà / muovi stop a pari)</span><span><b style="color:var(--green)">' + P(p.t1) + '</b> <span class="sub">+' + USD(1.5 * p.risk, 5) + ' MES</span></span></div>' +
+      '<div class="plan-row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + P(p.t2) + '</b> <span class="sub">+' + USD(2.5 * p.risk, 5) + ' MES</span></span></div>' +
+      '<div class="plan-row"><span class="lbl">Rischio / Rendimento</span><b>1 : 1.5 (T1) · 1 : 2.5 (T2)</b></div>' +
+      (a.sess.code !== 'rth' ? '<div class="plan-row"><span class="sub" style="color:var(--amber)">⚠ Fuori sessione ufficiale: liquidità bassa, spread più larghi. Meglio solo osservare.</span></div>' : '');
+  } else {
+    pianoHtml = '<div class="noplan"><b>Niente trade in questo momento.</b><span class="why">' + esc(a.motivo) + '</span></div>';
+  }
+
+  const fmtL = (v) => v === null ? '—' : P(v);
+  const macdEsito = a.piano ? 'PASS' : (Math.abs(a.macd.hist) < 0.3 ? 'NEUTRAL' : (a.macd.line > a.macd.signal ? 'BULLISH' : 'BEARISH'));
+  const rsiEsito = a.piano ? 'PASS' : (a.rsi > 68 || a.rsi < 32 ? (a.rsi > 68 ? 'BEARISH' : 'BULLISH') : 'NEUTRAL');
+
+  document.getElementById('live').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:12px;">' +
+    '<div class="action-banner ' + a.azione + '">' +
+      '<div class="action-word">' + a.azione + '</div>' +
+      '<div class="action-meta">' +
+        '<div class="big">' + P(a.price) + '</div>' +
+        '<div class="dim">ES front-month · Fiducia: ' + a.fiducia + '</div>' +
+      '</div>' +
+      '<div class="action-when">Calcolato alle <b>' + oraIT + '</b> (si aggiorna da solo ogni 60 s)<br>' +
+        'Dati: ~10 min di ritardo · ultima barra ' + (a.ageMin > 90 ? fmtDur(Math.round(a.ageMin)) : Math.round(a.ageMin) + ' min') + ' fa</div>' +
+    '</div>' +
+    '<div class="grid">' +
+      '<div class="card"><h2>Piano operativo (1 contratto MES)</h2>' + pianoHtml + '</div>' +
+      '<div class="card"><h2>Livelli chiave (calcolati dai dati)</h2>' +
+        '<div class="lvl-row"><span>Massimo overnight (ON High)</span><b>' + fmtL(a.onH) + '</b></div>' +
+        '<div class="lvl-row"><span>Minimo overnight (ON Low)</span><b>' + fmtL(a.onL) + '</b></div>' +
+        '<div class="lvl-row"><span>Massimo ieri (PDH)</span><b>' + fmtL(a.pdh) + '</b></div>' +
+        '<div class="lvl-row"><span>Minimo ieri (PDL)</span><b>' + fmtL(a.pdl) + '</b></div>' +
+        '<div class="lvl-row"><span>Chiusura ieri (PDC)</span><b>' + fmtL(a.pdc) + '</b></div>' +
+        '<div class="lvl-row"><span>' + esc(a.vwapLabel) + '</span><b>' + fmtL(a.vwap) + '</b></div>' +
+      '</div>' +
+      '<div class="card full"><h2>Indicatori in tempo reale</h2>' +
+        '<div class="sc-row">' + scTag(macdEsito) + '<div class="sc-body"><b>MACD (5 minuti)</b><span>Linea ' + a.macd.line.toFixed(2) + ' vs segnale ' + a.macd.signal.toFixed(2) + ' · istogramma ' + a.macd.hist.toFixed(2) + (Math.abs(a.macd.hist) > Math.abs(a.macd.histPrev) ? ' (in espansione)' : ' (in contrazione)') + '</span></div></div>' +
+        '<div class="sc-row">' + scTag(rsiEsito) + '<div class="sc-body"><b>RSI(14) + posizione VWAP</b><span>RSI ' + a.rsi.toFixed(0) + ' · prezzo ' + (a.dist >= 0 ? '+' : '') + a.dist.toFixed(2) + ' punti rispetto al VWAP</span></div></div>' +
+        '<div class="sc-row">' + scTag('NEUTRAL') + '<div class="sc-body"><b>CVD, pattern storici e news</b><span>Non calcolabili in automatico: li trovi nell\'analisi completa di Claude qui sotto.</span></div></div>' +
+      '</div>' +
+    '</div></div>';
+}
+
+async function aggiornaLive() {
+  try {
+    const r = await fetch(SB_URL + '/functions/v1/es-data', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    renderLive(analizza(d));
+  } catch (e) {
+    renderLive({ errore: String(e && e.message || e) });
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ANALISI DI CLAUDE (dal database, con file locale di riserva)
+   ════════════════════════════════════════════════════════════════ */
+function renderClaude(signals, fonte) {
+  const box = document.getElementById('claude');
   if (!signals || !signals.length) {
-    app.innerHTML = '<div class="err">Nessun segnale trovato, né nel database né nel file locale.<br>Chiedi a Claude: "dammi il segnale" e poi premi F5.</div>';
+    box.innerHTML = '<div class="err">Nessuna analisi trovata. Chiedi a Claude: "dammi il segnale".</div>';
     return;
   }
   const sig = signals[0];
-  const az = ['LONG', 'SHORT', 'WAIT'].includes(sig.azione) ? sig.azione : 'WAIT';
-
-  let html =
-    '<div style="display:flex;flex-direction:column;gap:12px;">' +
-    '<div class="action-banner ' + az + '">' +
-      '<div class="action-word">' + az + '</div>' +
-      '<div class="action-meta">' +
-        '<div class="big">' + esc(sig.prezzo) + '</div>' +
-        '<div class="dim">' + esc(sig.contratto || '') + ' · Fiducia: ' + esc(sig.fiducia || '—') + '</div>' +
-      '</div>' +
-      '<div class="action-when"><b>' + esc(sig.quando) + '</b><br>' + esc(sig.sessione || '') + '</div>' +
+  let html = '<div style="display:flex;flex-direction:column;gap:12px;"><div class="grid">' +
+    '<div class="card full" style="display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;">' +
+      '<span style="font-size:13px;color:var(--muted);">Ultima analisi:</span><b>' + esc(sig.quando) + '</b>' +
+      '<span style="font-size:13px;color:var(--muted);">Vista di Claude in quel momento: <b class="' + esc(sig.azione) + '" style="color:' + (sig.azione === 'LONG' ? 'var(--green)' : sig.azione === 'SHORT' ? 'var(--red)' : 'var(--amber)') + '">' + esc(sig.azione) + '</b> a ' + esc(sig.prezzo) + '</span>' +
     '</div>' +
-
-    '<div class="grid">' +
-      '<div class="card"><h2>Piano d\'ingresso (1 contratto MES)</h2>' + renderPiano(sig) + '</div>' +
-      '<div class="card"><h2>Livelli chiave</h2>' +
-        (sig.livelli || []).map(l => '<div class="lvl-row"><span>' + esc(l[0]) + '</span><b>' + esc(l[1]) + '</b></div>').join('') +
-      '</div>' +
-
-      '<div class="card full"><h2>Scorecard — i 5 controlli</h2>' +
-        (sig.scorecard || []).map(s =>
-          '<div class="sc-row"><div class="sc-tag ' + esc(s.esito) + '">' + esc(s.esito) + '</div>' +
-          '<div class="sc-body"><b>' + esc(s.nome) + '</b><span>' + esc(s.nota) + '</span></div></div>'
-        ).join('') +
-      '</div>' +
-
-      '<div class="card"><h2>Perché</h2><div class="prose">' + esc(sig.ragionamento || '') + '</div></div>' +
-      '<div class="card"><h2>Cosa fare adesso</h2><ul class="todo">' +
-        (sig.daFare || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
-
-      '<div class="card full"><h2>News che muovono il mercato' +
-        (sig.news ? '<span class="news-sent ' + esc(sig.news.sentiment) + '">' + esc(sig.news.sentiment) + '</span>' : '') +
-        '</h2><div class="prose">' + (sig.news ? esc(sig.news.titolo) : '—') + '</div></div>' +
-
-      '<div class="card"><h2>Fonti dei dati</h2><div class="fonti">' +
-        (sig.fonti || []).map(f => '• <a href="' + esc(f[1]) + '" target="_blank" rel="noopener">' + esc(f[0]) + '</a>').join('<br>') +
-      '</div></div>' +
-
-      '<div class="card"><h2>Regole fisse di rischio</h2><div class="rules">' +
-        '▸ Rischio massimo per trade: $20–60 su 1 MES<br>' +
-        '▸ Massimo 3 trade al giorno — 2 perdite di fila = stop<br>' +
-        '▸ Mai in posizione durante CPI, NFP o FOMC<br>' +
-        '▸ Nessun setup chiaro = WAIT' +
-      '</div></div>';
-
-  if (signals.length > 1) {
-    html += '<div class="card full"><h2>Segnali precedenti</h2><div class="storico">' +
-      signals.slice(1).map(s =>
-        '<div><b class="' + esc(s.azione) + '">' + esc(s.azione) + '</b> — ' + esc(s.quando) + ' — prezzo ' + esc(s.prezzo) + '</div>'
-      ).join('') + '</div></div>';
-  }
-
-  html += '<div style="text-align:center;font-size:11px;color:var(--muted);">Fonte segnali: ' + fonte + '</div>';
-  html += '</div></div>';
-  app.innerHTML = html;
+    '<div class="card full"><h2>News che muovono il mercato' +
+      (sig.news ? '<span class="news-sent ' + esc(sig.news.sentiment) + '">' + esc(sig.news.sentiment) + '</span>' : '') +
+      '</h2><div class="prose">' + (sig.news ? esc(sig.news.titolo) : '—') + '</div></div>' +
+    '<div class="card"><h2>Il quadro generale</h2><div class="prose">' + esc(sig.ragionamento || '') + '</div></div>' +
+    '<div class="card"><h2>Cosa tenere d\'occhio</h2><ul class="todo">' +
+      (sig.daFare || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
+    '<div class="card full"><h2>Scorecard completa (al momento dell\'analisi)</h2>' +
+      (sig.scorecard || []).map(s =>
+        '<div class="sc-row">' + scTag(s.esito) + '<div class="sc-body"><b>' + esc(s.nome) + '</b><span>' + esc(s.nota) + '</span></div></div>'
+      ).join('') + '</div>' +
+    '<div class="card"><h2>Fonti dei dati</h2><div class="fonti">' +
+      (sig.fonti || []).map(f => '• <a href="' + esc(f[1]) + '" target="_blank" rel="noopener">' + esc(f[0]) + '</a>').join('<br>') +
+    '</div></div>' +
+    '<div class="card"><h2>Analisi precedenti</h2><div class="storico">' +
+      (signals.length > 1
+        ? signals.slice(1, 8).map(s => '<div><b class="' + esc(s.azione) + '">' + esc(s.azione) + '</b> — ' + esc(s.quando) + ' — prezzo ' + esc(s.prezzo) + '</div>').join('')
+        : '<div>Ancora nessuna analisi precedente.</div>') +
+    '</div></div>' +
+  '</div><div class="note">Fonte analisi: ' + fonte + '</div></div>';
+  box.innerHTML = html;
 }
 
-/* ═══ Caricamento segnali: prima dal database, poi dal file locale ═══ */
-const SB_URL = 'https://tpfgzbevpzpmlbzldihe.supabase.co';
-const SB_KEY = 'sb_publishable_886z6CO5CerzQpPS36iMJw_saRF_MdD';
-
-async function carica() {
+async function aggiornaClaude() {
   try {
     const r = await fetch(SB_URL + '/rest/v1/signals?select=payload&order=created_at.desc&limit=20', {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
@@ -326,13 +547,16 @@ async function carica() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = await r.json();
     if (!rows.length) throw new Error('database vuoto');
-    render(rows.map(x => x.payload), 'database online ✓ (si aggiorna da solo)');
+    renderClaude(rows.map(x => x.payload), 'database online ✓');
   } catch (e) {
-    render(window.SIGNALS || [], 'file locale (database non raggiungibile)');
+    renderClaude(window.SIGNALS || [], 'file locale (database non raggiungibile)');
   }
 }
-carica();
-setInterval(carica, 5 * 60 * 1000); // ricontrolla il database ogni 5 minuti
+
+aggiornaLive();
+aggiornaClaude();
+setInterval(aggiornaLive, 60 * 1000);        // segnale live: ogni 60 secondi
+setInterval(aggiornaClaude, 5 * 60 * 1000);  // analisi Claude: ricontrolla ogni 5 minuti
 </script>
 </body>
 </html>
