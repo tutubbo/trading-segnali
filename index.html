@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Segnale MES/ES</title>
+<link rel="preconnect" href="https://s3.tradingview.com" crossorigin>
+<link rel="preconnect" href="https://www.tradingview-widget.com" crossorigin>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #121722;
+    --panel2: #171d2b;
+    --border: #232b3d;
+    --text: #e6e9f0;
+    --muted: #8b93a7;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+  body { padding: 14px; min-height: 100vh; }
+  .wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Header ─────────────────────────────── */
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 11px 16px;
+  }
+  .logo { font-size: 18px; font-weight: 800; letter-spacing: .5px; }
+  .logo span { color: var(--blue); }
+  .badge { padding: 4px 13px; border-radius: 999px; font-weight: 700; font-size: 12.5px; border: 1px solid transparent; }
+  .badge.rth    { background: #052e16; color: var(--green); border-color: #14532d; }
+  .badge.eth    { background: #1e1b4b; color: #a5b4fc; border-color: #312e81; }
+  .badge.pre    { background: #422006; color: var(--amber); border-color: #713f12; }
+  .badge.closed { background: #3f1216; color: var(--red); border-color: #7f1d1d; }
+  .clockbox { display: flex; gap: 16px; margin-left: auto; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+  .clockbox b { color: var(--text); font-variant-numeric: tabular-nums; font-size: 14px; }
+  .countdown { font-size: 12.5px; color: var(--muted); }
+  .countdown b { color: var(--text); }
+
+  .tape { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+
+  /* ── Banner azione ──────────────────────── */
+  .action-banner {
+    border-radius: var(--radius); padding: 22px 24px; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  }
+  .action-banner.LONG  { background: linear-gradient(135deg, #052e16, #0b3a20); border-color: #14532d; }
+  .action-banner.SHORT { background: linear-gradient(135deg, #3f1216, #4c1116); border-color: #7f1d1d; }
+  .action-banner.WAIT  { background: linear-gradient(135deg, #422006, #4a2a08); border-color: #713f12; }
+  .action-word { font-size: 52px; font-weight: 900; letter-spacing: 2px; line-height: 1; }
+  .LONG  .action-word { color: var(--green); }
+  .SHORT .action-word { color: var(--red); }
+  .WAIT  .action-word { color: var(--amber); }
+  .action-meta { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+  .action-meta .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .action-meta .dim { color: var(--muted); font-size: 13px; }
+  .action-when { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+  .action-when b { color: var(--text); }
+
+  /* ── Card ───────────────────────────────── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card h2 {
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+    margin-bottom: 12px; font-weight: 700;
+  }
+  .full { grid-column: 1 / -1; }
+
+  /* Piano d'ingresso */
+  .plan-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .plan-row:last-child { border-bottom: none; }
+  .plan-row .lbl { color: var(--muted); }
+  .plan-row b { font-variant-numeric: tabular-nums; }
+  .plan-row .sub { font-size: 12.5px; color: var(--muted); }
+  .noplan { font-size: 15px; line-height: 1.6; color: var(--amber); font-weight: 600; padding: 8px 0; }
+
+  /* Livelli */
+  .lvl-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .lvl-row:last-child { border-bottom: none; }
+  .lvl-row span:first-child { color: var(--muted); }
+  .lvl-row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* Scorecard */
+  .sc-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); align-items: baseline; }
+  .sc-row:last-child { border-bottom: none; }
+  .sc-tag {
+    flex: 0 0 86px; text-align: center; font-size: 11.5px; font-weight: 800; padding: 4px 0;
+    border-radius: 7px; letter-spacing: .5px;
+  }
+  .sc-tag.PASS, .sc-tag.BULLISH { background: #052e16; color: var(--green); }
+  .sc-tag.FAIL, .sc-tag.BEARISH { background: #3f1216; color: var(--red); }
+  .sc-tag.NEUTRAL { background: var(--panel2); color: var(--muted); }
+  .sc-body { font-size: 14px; line-height: 1.5; }
+  .sc-body b { display: block; margin-bottom: 1px; }
+  .sc-body span { color: var(--muted); font-size: 13px; }
+
+  /* Testi */
+  .prose { font-size: 14.5px; line-height: 1.7; }
+  ul.todo { list-style: none; }
+  ul.todo li { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.55; }
+  ul.todo li:last-child { border-bottom: none; }
+  ul.todo li::before { content: "▸ "; color: var(--blue); font-weight: 700; }
+
+  .news-sent { font-weight: 800; font-size: 12px; padding: 3px 10px; border-radius: 7px; margin-left: 8px; }
+  .news-sent.BULLISH { background: #052e16; color: var(--green); }
+  .news-sent.BEARISH { background: #3f1216; color: var(--red); }
+  .news-sent.NEUTRAL { background: var(--panel2); color: var(--muted); }
+
+  .fonti { font-size: 13px; line-height: 2; }
+  .storico { font-size: 13px; color: var(--muted); }
+  .storico div { padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .storico div:last-child { border-bottom: none; }
+  .storico b.LONG { color: var(--green); } .storico b.SHORT { color: var(--red); } .storico b.WAIT { color: var(--amber); }
+
+  .rules { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .disclaimer { text-align: center; font-size: 11px; color: var(--muted); padding: 8px 0 14px; line-height: 1.6; }
+  .err { background: #3f1216; border: 1px solid #7f1d1d; color: #fca5a5; padding: 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">SEGNALE <span>MES/ES</span></div>
+    <div class="badge closed" id="sessionBadge">…</div>
+    <div class="countdown" id="countdown"></div>
+    <div class="clockbox">
+      <div>New York <b id="clockET">--:--:--</b></div>
+      <div>Italia <b id="clockIT">--:--:--</b></div>
+    </div>
+  </header>
+
+  <div class="tape">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          {"proName": "CME_MINI:ES1!",  "title": "ES"},
+          {"proName": "CME_MINI:MES1!", "title": "MES"},
+          {"proName": "CME_MINI:NQ1!",  "title": "NQ"},
+          {"proName": "CAPITALCOM:VIX", "title": "VIX"},
+          {"proName": "TVC:US10Y",      "title": "T-Note 10a"}
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": false,
+        "displayMode": "adaptive",
+        "colorTheme": "dark",
+        "locale": "it"
+      }
+      </script>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <div class="disclaimer">
+    Solo paper trading a scopo educativo — non è un consiglio finanziario. I futures sono strumenti a leva:
+    puoi perdere più del deposito iniziale. Non usare mai denaro reale basandoti solo su segnali generati dall'AI.
+  </div>
+</div>
+
+<script src="segnale.js"></script>
+<script>
+/* ═══ Orologio e sessione (ora di New York, tutto in locale) ═══ */
+function tzParts(tz) {
+  const s = new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const get = t => s.find(p => p.type === t).value;
+  const days = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { day: days[get('weekday')], h: +get('hour') % 24, m: +get('minute'), sec: +get('second') };
+}
+function sessionAt(day, mins) {
+  if (day === 6) return { code: 'closed', label: 'CHIUSO — weekend', cls: 'closed' };
+  if (day === 0) return mins < 1080
+    ? { code: 'closed', label: 'CHIUSO — riapre alle 18:00 NY', cls: 'closed' }
+    : { code: 'eth', label: 'ETH Globex — liquidità bassa', cls: 'eth' };
+  if (day === 5 && mins >= 1020) return { code: 'closed', label: 'CHIUSO — weekend', cls: 'closed' };
+  if (mins >= 1020 && mins < 1080) return { code: 'closed', label: 'PAUSA giornaliera (17–18 NY)', cls: 'closed' };
+  if (mins >= 570 && mins < 960) return { code: 'rth', label: 'RTH — sessione ufficiale ✓', cls: 'rth' };
+  if (mins >= 360 && mins < 570) return { code: 'pre', label: 'Pre-market USA', cls: 'pre' };
+  return { code: 'eth', label: 'ETH Globex — liquidità bassa', cls: 'eth' };
+}
+function nextChange(day, mins) {
+  const cur = sessionAt(day, mins).code;
+  for (let add = 1; add <= 10080; add++) {
+    const t = (day * 1440 + mins + add) % 10080;
+    const s = sessionAt(Math.floor(t / 1440), t % 1440);
+    if (s.code !== cur) return { mins: add, next: s };
+  }
+  return null;
+}
+function fmtDur(m) {
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h >= 24) return Math.floor(h / 24) + 'g ' + (h % 24) + 'h';
+  return h > 0 ? h + 'h ' + mm + 'min' : mm + ' min';
+}
+function tick() {
+  const et = tzParts('America/New_York');
+  const it = tzParts('Europe/Rome');
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('clockET').textContent = pad(et.h) + ':' + pad(et.m) + ':' + pad(et.sec);
+  document.getElementById('clockIT').textContent = pad(it.h) + ':' + pad(it.m) + ':' + pad(it.sec);
+  const mins = et.h * 60 + et.m;
+  const s = sessionAt(et.day, mins);
+  const badge = document.getElementById('sessionBadge');
+  badge.textContent = s.label;
+  badge.className = 'badge ' + s.cls;
+  const nc = nextChange(et.day, mins);
+  if (nc) document.getElementById('countdown').innerHTML =
+    'Prossimo cambio: <b>' + nc.next.label.split('—')[0].trim() + '</b> tra <b>' + fmtDur(nc.mins) + '</b>';
+}
+tick();
+setInterval(tick, 1000);
+
+/* ═══ Rendering del segnale (da segnale.js) ═══ */
+const $ = (v) => '$' + v.toFixed(2).replace(/\.00$/, '');
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function renderPiano(sig) {
+  if (!sig.piano) {
+    return '<div class="noplan">Nessun trade da fare adesso.<br>' +
+      '<span style="color:var(--muted);font-weight:400;font-size:13.5px;">Guarda la lista "Cosa fare adesso" qui sotto: quando le condizioni cambiano, chiedi a Claude un nuovo segnale.</span></div>';
+  }
+  const p = sig.piano;
+  const e = parseFloat(p.entrata), st = parseFloat(p.stop);
+  const t1 = parseFloat(p.target1), t2 = p.target2 ? parseFloat(p.target2) : null;
+  const rPts = Math.abs(e - st);
+  const g1 = Math.abs(t1 - e), g2 = t2 !== null ? Math.abs(t2 - e) : null;
+  let html =
+    '<div class="plan-row"><span class="lbl">Entrata</span><b>' + e.toFixed(2) + '</b></div>' +
+    '<div class="plan-row"><span class="lbl">Stop (perdita massima)</span><span><b style="color:var(--red)">' + st.toFixed(2) + '</b> <span class="sub">' + rPts.toFixed(2) + ' pt = −' + $(rPts * 5) + ' MES (−' + $(rPts * 50) + ' ES)</span></span></div>' +
+    '<div class="plan-row"><span class="lbl">Target 1</span><span><b style="color:var(--green)">' + t1.toFixed(2) + '</b> <span class="sub">' + g1.toFixed(2) + ' pt = +' + $(g1 * 5) + ' MES (+' + $(g1 * 50) + ' ES)</span></span></div>';
+  if (t2 !== null) html +=
+    '<div class="plan-row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + t2.toFixed(2) + '</b> <span class="sub">' + g2.toFixed(2) + ' pt = +' + $(g2 * 5) + ' MES (+' + $(g2 * 50) + ' ES)</span></span></div>';
+  html += '<div class="plan-row"><span class="lbl">Rischio / Rendimento</span><b>1 : ' + (rPts > 0 ? (g1 / rPts).toFixed(1) : '—') + '</b></div>';
+  return html;
+}
+
+function render(signals, fonte) {
+  const app = document.getElementById('app');
+  if (!signals || !signals.length) {
+    app.innerHTML = '<div class="err">Nessun segnale trovato, né nel database né nel file locale.<br>Chiedi a Claude: "dammi il segnale" e poi premi F5.</div>';
+    return;
+  }
+  const sig = signals[0];
+  const az = ['LONG', 'SHORT', 'WAIT'].includes(sig.azione) ? sig.azione : 'WAIT';
+
+  let html =
+    '<div style="display:flex;flex-direction:column;gap:12px;">' +
+    '<div class="action-banner ' + az + '">' +
+      '<div class="action-word">' + az + '</div>' +
+      '<div class="action-meta">' +
+        '<div class="big">' + esc(sig.prezzo) + '</div>' +
+        '<div class="dim">' + esc(sig.contratto || '') + ' · Fiducia: ' + esc(sig.fiducia || '—') + '</div>' +
+      '</div>' +
+      '<div class="action-when"><b>' + esc(sig.quando) + '</b><br>' + esc(sig.sessione || '') + '</div>' +
+    '</div>' +
+
+    '<div class="grid">' +
+      '<div class="card"><h2>Piano d\'ingresso (1 contratto MES)</h2>' + renderPiano(sig) + '</div>' +
+      '<div class="card"><h2>Livelli chiave</h2>' +
+        (sig.livelli || []).map(l => '<div class="lvl-row"><span>' + esc(l[0]) + '</span><b>' + esc(l[1]) + '</b></div>').join('') +
+      '</div>' +
+
+      '<div class="card full"><h2>Scorecard — i 5 controlli</h2>' +
+        (sig.scorecard || []).map(s =>
+          '<div class="sc-row"><div class="sc-tag ' + esc(s.esito) + '">' + esc(s.esito) + '</div>' +
+          '<div class="sc-body"><b>' + esc(s.nome) + '</b><span>' + esc(s.nota) + '</span></div></div>'
+        ).join('') +
+      '</div>' +
+
+      '<div class="card"><h2>Perché</h2><div class="prose">' + esc(sig.ragionamento || '') + '</div></div>' +
+      '<div class="card"><h2>Cosa fare adesso</h2><ul class="todo">' +
+        (sig.daFare || []).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
+
+      '<div class="card full"><h2>News che muovono il mercato' +
+        (sig.news ? '<span class="news-sent ' + esc(sig.news.sentiment) + '">' + esc(sig.news.sentiment) + '</span>' : '') +
+        '</h2><div class="prose">' + (sig.news ? esc(sig.news.titolo) : '—') + '</div></div>' +
+
+      '<div class="card"><h2>Fonti dei dati</h2><div class="fonti">' +
+        (sig.fonti || []).map(f => '• <a href="' + esc(f[1]) + '" target="_blank" rel="noopener">' + esc(f[0]) + '</a>').join('<br>') +
+      '</div></div>' +
+
+      '<div class="card"><h2>Regole fisse di rischio</h2><div class="rules">' +
+        '▸ Rischio massimo per trade: $20–60 su 1 MES<br>' +
+        '▸ Massimo 3 trade al giorno — 2 perdite di fila = stop<br>' +
+        '▸ Mai in posizione durante CPI, NFP o FOMC<br>' +
+        '▸ Nessun setup chiaro = WAIT' +
+      '</div></div>';
+
+  if (signals.length > 1) {
+    html += '<div class="card full"><h2>Segnali precedenti</h2><div class="storico">' +
+      signals.slice(1).map(s =>
+        '<div><b class="' + esc(s.azione) + '">' + esc(s.azione) + '</b> — ' + esc(s.quando) + ' — prezzo ' + esc(s.prezzo) + '</div>'
+      ).join('') + '</div></div>';
+  }
+
+  html += '<div style="text-align:center;font-size:11px;color:var(--muted);">Fonte segnali: ' + fonte + '</div>';
+  html += '</div></div>';
+  app.innerHTML = html;
+}
+
+/* ═══ Caricamento segnali: prima dal database, poi dal file locale ═══ */
+const SB_URL = 'https://tpfgzbevpzpmlbzldihe.supabase.co';
+const SB_KEY = 'sb_publishable_886z6CO5CerzQpPS36iMJw_saRF_MdD';
+
+async function carica() {
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/signals?select=payload&order=created_at.desc&limit=20', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = await r.json();
+    if (!rows.length) throw new Error('database vuoto');
+    render(rows.map(x => x.payload), 'database online ✓ (si aggiorna da solo)');
+  } catch (e) {
+    render(window.SIGNALS || [], 'file locale (database non raggiungibile)');
+  }
+}
+carica();
+setInterval(carica, 5 * 60 * 1000); // ricontrolla il database ogni 5 minuti
+</script>
+</body>
+</html>
