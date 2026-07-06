@@ -91,6 +91,11 @@
   .row .lbl { color: var(--muted); }
   .row b { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
   .row .sub { font-size: 11px; color: var(--muted); font-family: Inter, sans-serif; }
+  input.cal {
+    width: 110px; background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 6px 8px; font-family: var(--mono); font-size: 13px; text-align: right;
+  }
+  input.cal:focus { outline: none; border-color: var(--blue); }
   .noplan { font-size: 14px; line-height: 1.6; padding: 2px 0; }
   .noplan b { color: var(--amber); }
   .noplan .why { color: var(--muted); font-size: 13px; display: block; margin-top: 6px; }
@@ -409,23 +414,31 @@ function analizza(d, cfg) {
 /* ════════════════════════════════════════════════════════════════
    RENDER
    ════════════════════════════════════════════════════════════════ */
+const ULTIMO = {};
 function renderInst(a, cfg) {
   const box = document.getElementById(cfg.boxId);
+  /* se stai scrivendo nella casella di calibrazione, salta questo giro */
+  if (box.contains(document.activeElement) && document.activeElement.classList && document.activeElement.classList.contains('cal')) return;
   if (a.errore) {
     box.innerHTML = '<div class="err"><b>' + esc(cfg.nome) + '</b>: dati non disponibili (' + esc(a.errore) + '). Riprovo tra 60 secondi.</div>';
     return;
   }
+  ULTIMO[cfg.key] = a;
   const oraIT = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(new Date());
   const eta = a.ageMin > 90 ? fmtDur(Math.round(a.ageMin)) : Math.round(a.ageMin) + ' min';
 
   let pianoHtml;
   if (a.piano) {
     const p = a.piano;
+    const off = parseFloat(localStorage.getItem('sd_off_' + cfg.key)) || 0;
+    const adj = (v) => P(v + off);
     pianoHtml =
-      '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(a.tipo) + ')</span></span><b>' + P(p.entrata) + '</b></div>' +
-      '<div class="row"><span class="lbl">Stop</span><span><b style="color:var(--red)">' + P(p.stop) + '</b> <span class="sub">−' + P(p.risk) + ' pt = −' + USD(p.risk, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 1 <span class="sub">chiudi metà</span></span><span><b style="color:var(--green)">' + P(p.t1) + '</b> <span class="sub">+' + P(1.5 * p.risk) + ' pt = +' + USD(1.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + P(p.t2) + '</b> <span class="sub">+' + P(2.5 * p.risk) + ' pt = +' + USD(2.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Prezzo sul tuo broker <span class="sub">correggilo se diverso</span></span>' +
+        '<input class="cal" type="number" step="0.01" inputmode="decimal" data-key="' + cfg.key + '" data-base="' + a.price + '" value="' + (a.price + off).toFixed(2) + '"></div>' +
+      '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(a.tipo) + ')</span></span><b id="px-' + cfg.key + '-e">' + adj(p.entrata) + '</b></div>' +
+      '<div class="row"><span class="lbl">Stop → campo S/L</span><span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(p.stop) + '</b> <span class="sub">−' + P(p.risk) + ' pt = −' + USD(p.risk, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">chiudi metà</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(p.t1) + '</b> <span class="sub">+' + P(1.5 * p.risk) + ' pt = +' + USD(1.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(p.t2) + '</b> <span class="sub">+' + P(2.5 * p.risk) + ' pt = +' + USD(2.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
       '<div class="row"><span class="lbl">Rischio / Rendimento</span><b>1:1.5 · 1:2.5</b></div>' +
       (a.sess.code !== 'rth' ? '<div class="row"><span class="sub" style="color:var(--amber)">⚠ Fuori sessione ufficiale: liquidità bassa, meglio solo osservare.</span></div>' : '');
   } else {
@@ -461,6 +474,23 @@ function renderInst(a, cfg) {
       '<div class="row"><span class="lbl">' + esc(a.vwapLabel) + '</span><b>' + fmtL(a.vwap) + '</b></div>' +
     '</div>';
 }
+
+/* Calibrazione: scrivi il prezzo del tuo broker → stop e target si spostano
+   della stessa differenza. La differenza resta salvata per i prossimi segnali. */
+document.addEventListener('input', (e) => {
+  const el = e.target && e.target.classList && e.target.classList.contains('cal') ? e.target : null;
+  if (!el) return;
+  const key = el.dataset.key;
+  const base = parseFloat(el.dataset.base);
+  const v = parseFloat(el.value);
+  const off = isNaN(v) ? 0 : +(v - base).toFixed(2);
+  localStorage.setItem('sd_off_' + key, off);
+  const a = ULTIMO[key];
+  if (!a || !a.piano) return;
+  const p = a.piano;
+  const set = (suf, val) => { const n = document.getElementById('px-' + key + '-' + suf); if (n) n.textContent = val.toFixed(2); };
+  set('e', p.entrata + off); set('s', p.stop + off); set('1', p.t1 + off); set('2', p.t2 + off);
+});
 
 async function aggiornaLive() {
   try {
