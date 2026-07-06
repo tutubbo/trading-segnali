@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Segnali MES/ES + Oro — Live</title>
+<title>Segnali S&P 500 + Oro — Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
@@ -19,7 +19,6 @@
     --red: #ff5d6c;
     --amber: #ffb02e;
     --blue: #5c8dff;
-    --gold: #f5c76b;
     --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -132,16 +131,16 @@
   </header>
 
   <div class="insts">
-    <div class="inst" id="inst-es"><div class="card">Carico S&amp;P 500…</div></div>
-    <div class="inst" id="inst-gold"><div class="card">Carico Oro…</div></div>
+    <div class="inst" id="inst-sp"><div class="card">Carico S&amp;P 500…</div></div>
+    <div class="inst" id="inst-xau"><div class="card">Carico Oro…</div></div>
   </div>
 
   <div id="claude"></div>
 
   <div class="foot">
     <div class="rules">Rischio max $20–60 a trade · massimo 3 trade al giorno · 2 perdite di fila = stop · mai in posizione durante CPI, NFP o FOMC</div>
-    Solo paper trading educativo — non è consulenza finanziaria. Dati gratuiti con ~10 min di ritardo: verifica sul tuo grafico.
-    I futures sono a leva: puoi perdere più del deposito.
+    Solo paper trading educativo — non è consulenza finanziaria. Il prezzo della tua piattaforma può differire di qualche
+    punto: usa le <b>distanze in punti</b> del piano, non i prezzi assoluti. I mercati a leva possono farti perdere più del deposito.
   </div>
 </div>
 
@@ -156,27 +155,30 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const P = (n) => n.toFixed(2);
 
-/* Configurazione per strumento: moltiplicatori in $ per punto e
-   limiti di rischio equivalenti a $20–60 sul contratto micro. */
+/* Ogni strumento: quanto vale 1 punto con la size consigliata e i
+   limiti di stop che corrispondono a un rischio di $20–60. */
 const STRUMENTI = [
   {
-    key: 'es', boxId: 'inst-es', nome: 'S&P 500', micro: 'MES', big: 'ES',
-    multMicro: 5, multBig: 50,
-    riskMin: 4, riskMax: 12,   /* punti → $20–60 su MES */
-    mrDist: 8, glue: 2         /* soglie distanza dal VWAP in punti */
+    key: 'sp500', boxId: 'inst-sp', nome: 'S&P 500', sym: 'SPX · US500',
+    sizeNota: '$5 per punto (1 MES o 5 unità CFD)',
+    multMicro: 5,
+    riskMin: 4, riskMax: 12,
+    mrDist: 8, glue: 2,
+    soloRTH: true            /* l'indice si muove solo in sessione USA */
   },
   {
-    key: 'gold', boxId: 'inst-gold', nome: 'Oro', micro: 'MGC', big: 'GC',
-    multMicro: 10, multBig: 100,
-    riskMin: 2, riskMax: 6,    /* punti → $20–60 su MGC */
-    mrDist: 4, glue: 1
+    key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD',
+    sizeNota: '$10 per punto (1 MGC o 10 once CFD)',
+    multMicro: 10,
+    riskMin: 2, riskMax: 6,
+    mrDist: 4, glue: 1,
+    soloRTH: false           /* l'oro spot gira quasi 24 ore */
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
 
 /* ════════════════════════════════════════════════════════════════
-   OROLOGIO E SESSIONE (ora di New York — CME e COMEX seguono
-   lo stesso orario Globex)
+   OROLOGIO E SESSIONE (ora di New York)
    ════════════════════════════════════════════════════════════════ */
 function tzParts(tz) {
   const s = new Intl.DateTimeFormat('en-GB', {
@@ -272,17 +274,19 @@ const etFmt = new Intl.DateTimeFormat('en-CA', {
 function toBars(d) {
   const bars = [];
   for (let i = 0; i < d.t.length; i++) {
-    if (d.c[i] == null || d.v[i] == null) continue;
+    if (d.c[i] == null) continue;
     const parts = etFmt.formatToParts(new Date(d.t[i] * 1000));
     const g = t => parts.find(p => p.type === t).value;
     bars.push({
-      t: d.t[i], o: d.o[i], h: d.h[i], l: d.l[i], c: d.c[i], v: d.v[i],
+      t: d.t[i], o: d.o[i], h: d.h[i], l: d.l[i], c: d.c[i], v: d.v[i] || 0,
       dayKey: g('year') + '-' + g('month') + '-' + g('day'),
       mins: (+g('hour') % 24) * 60 + (+g('minute'))
     });
   }
   return bars;
 }
+/* Giorno della settimana da una dayKey 'YYYY-MM-DD' (0=dom, 6=sab) */
+const wdOf = (dayKey) => new Date(dayKey + 'T12:00:00Z').getUTCDay();
 
 /* ════════════════════════════════════════════════════════════════
    MOTORE DEL SEGNALE — regole SIGNAL DECK (parametrizzato)
@@ -299,9 +303,10 @@ function analizza(d, cfg) {
   const sess = sessionAt(nowET.day, nowMins);
   const inRTH = sess.code === 'rth';
 
+  /* Giornate feriali in orario USA (9:30–16:00 NY) per i livelli di ieri */
   const rthDays = {};
   for (const b of bars) {
-    if (b.mins >= 570 && b.mins < 960) {
+    if (b.mins >= 570 && b.mins < 960 && wdOf(b.dayKey) !== 0 && wdOf(b.dayKey) !== 6) {
       (rthDays[b.dayKey] = rthDays[b.dayKey] || []).push(b);
     }
   }
@@ -318,6 +323,7 @@ function analizza(d, cfg) {
   const pdl = pd.length ? Math.min(...pd.map(b => b.l)) : null;
   const pdc = pd.length ? pd[pd.length - 1].c : null;
 
+  /* Sessione notturna (dalle 18:00 NY) → massimo/minimo overnight */
   let gStart = bars.length - 1;
   for (let i = bars.length - 1; i > 0; i--) {
     const prev = bars[i - 1], cur = bars[i];
@@ -329,12 +335,15 @@ function analizza(d, cfg) {
   const onH = overnight.length ? Math.max(...overnight.map(b => b.h)) : null;
   const onL = overnight.length ? Math.min(...overnight.map(b => b.l)) : null;
 
+  /* VWAP (o media semplice se il volume non esiste, es. oro spot) */
   let vwapBars, vwapLabel;
   if (inRTH && rthDays[todayKey]) { vwapBars = rthDays[todayKey]; vwapLabel = 'VWAP (da apertura 15:30 it.)'; }
   else { vwapBars = bars.slice(gStart); vwapLabel = inRTH ? 'VWAP sessione' : 'VWAP ultima sessione'; }
-  let pv = 0, vv = 0;
-  for (const b of vwapBars) { const tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vv += b.v; }
-  const vwap = vv > 0 ? pv / vv : null;
+  let pv = 0, vv = 0, tsum = 0;
+  for (const b of vwapBars) { const tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vv += b.v; tsum += tp; }
+  let vwap = null;
+  if (vv > 0) vwap = pv / vv;
+  else if (vwapBars.length) { vwap = tsum / vwapBars.length; vwapLabel = vwapLabel.replace('VWAP', 'Media sessione'); }
 
   const closes = bars.slice(-200).map(b => b.c);
   const macd = macdOf(closes);
@@ -348,16 +357,17 @@ function analizza(d, cfg) {
   };
 
   if (sess.code === 'closed') { out.motivo = 'Mercato chiuso. Il motore riparte da solo alla riapertura.'; return out; }
+  if (cfg.soloRTH && !inRTH) { out.motivo = 'L\'indice S&P 500 si muove solo durante la sessione USA (15:30–22:00 italiane): il segnale si attiva lì.'; return out; }
   if (ageMin > 25) { out.motivo = 'Dati non aggiornati (ultimo dato di ' + (ageMin > 90 ? fmtDur(Math.round(ageMin)) : Math.round(ageMin) + ' min') + ' fa): niente segnale senza dati freschi.'; return out; }
   if (inRTH && nowMins < 585) { out.motivo = 'Range di apertura in formazione (primi 15 minuti): mai entrare prima delle 15:45 italiane.'; return out; }
-  if (vwap === null) { out.motivo = 'VWAP non calcolabile: dati volume mancanti.'; return out; }
+  if (vwap === null) { out.motivo = 'Prezzo medio di sessione non calcolabile.'; return out; }
 
   const macdLong = macd.line > macd.signal;
   const expanding = Math.abs(macd.hist) > Math.abs(macd.histPrev);
 
   let dir = null;
-  if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; out.tipo = 'ritorno al VWAP (ipercomprato)'; out.fiducia = 'MEDIA'; }
-  else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; out.tipo = 'ritorno al VWAP (ipervenduto)'; out.fiducia = 'MEDIA'; }
+  if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; out.tipo = 'ritorno alla media (ipercomprato)'; out.fiducia = 'MEDIA'; }
+  else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; out.tipo = 'ritorno alla media (ipervenduto)'; out.fiducia = 'MEDIA'; }
   else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) {
     dir = 'LONG'; out.tipo = 'trend rialzista confermato';
     out.fiducia = expanding && rsi <= 62 ? 'ALTA' : 'MEDIA';
@@ -369,12 +379,12 @@ function analizza(d, cfg) {
 
   if (!dir) {
     const perche = [];
-    if (Math.abs(dist) < cfg.glue) perche.push('prezzo incollato al VWAP (nessuna direzione)');
-    else if (price > vwap && !macdLong) perche.push('prezzo sopra il VWAP ma MACD ribassista: segnali in disaccordo');
-    else if (price < vwap && macdLong) perche.push('prezzo sotto il VWAP ma MACD rialzista: segnali in disaccordo');
-    if (rsi > 68 && dist < cfg.mrDist) perche.push('RSI ipercomprato (' + rsi.toFixed(0) + ') ma non abbastanza lontano dal VWAP per il ritorno');
-    if (rsi < 32 && dist > -cfg.mrDist) perche.push('RSI ipervenduto (' + rsi.toFixed(0) + ') ma non abbastanza lontano dal VWAP per il ritorno');
-    if (!perche.length) perche.push('condizioni non tutte allineate (MACD, RSI e VWAP devono confermarsi a vicenda)');
+    if (Math.abs(dist) < cfg.glue) perche.push('prezzo incollato alla media di sessione (nessuna direzione)');
+    else if (price > vwap && !macdLong) perche.push('prezzo sopra la media ma MACD ribassista: segnali in disaccordo');
+    else if (price < vwap && macdLong) perche.push('prezzo sotto la media ma MACD rialzista: segnali in disaccordo');
+    if (rsi > 68 && dist < cfg.mrDist) perche.push('RSI ipercomprato (' + rsi.toFixed(0) + ') ma non abbastanza lontano dalla media per il ritorno');
+    if (rsi < 32 && dist > -cfg.mrDist) perche.push('RSI ipervenduto (' + rsi.toFixed(0) + ') ma non abbastanza lontano dalla media per il ritorno');
+    if (!perche.length) perche.push('condizioni non tutte allineate (MACD, RSI e media di sessione devono confermarsi a vicenda)');
     out.motivo = perche.join('; ') + '.';
     return out;
   }
@@ -386,7 +396,7 @@ function analizza(d, cfg) {
   if (risk < cfg.riskMin) { risk = cfg.riskMin; stop = dir === 'LONG' ? price - risk : price + risk; }
   if (risk > cfg.riskMax) {
     out.motivo = 'Setup ' + out.tipo + ' presente, ma lo stop naturale è a ' + risk.toFixed(2) +
-      ' punti (' + USD(risk, cfg.multMicro) + ' di rischio su 1 ' + cfg.micro + '): oltre il limite di $60. Trade troppo rischioso = WAIT.';
+      ' punti (' + USD(risk, cfg.multMicro) + ' di rischio): oltre il limite di $60. Trade troppo rischioso = WAIT.';
     return out;
   }
   const sgn = dir === 'LONG' ? 1 : -1;
@@ -413,9 +423,9 @@ function renderInst(a, cfg) {
     const p = a.piano;
     pianoHtml =
       '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(a.tipo) + ')</span></span><b>' + P(p.entrata) + '</b></div>' +
-      '<div class="row"><span class="lbl">Stop</span><span><b style="color:var(--red)">' + P(p.stop) + '</b> <span class="sub">−' + USD(p.risk, cfg.multMicro) + ' ' + cfg.micro + ' / −' + USD(p.risk, cfg.multBig) + ' ' + cfg.big + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 1 <span class="sub">chiudi metà</span></span><span><b style="color:var(--green)">' + P(p.t1) + '</b> <span class="sub">+' + USD(1.5 * p.risk, cfg.multMicro) + ' ' + cfg.micro + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + P(p.t2) + '</b> <span class="sub">+' + USD(2.5 * p.risk, cfg.multMicro) + ' ' + cfg.micro + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Stop</span><span><b style="color:var(--red)">' + P(p.stop) + '</b> <span class="sub">−' + P(p.risk) + ' pt = −' + USD(p.risk, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 1 <span class="sub">chiudi metà</span></span><span><b style="color:var(--green)">' + P(p.t1) + '</b> <span class="sub">+' + P(1.5 * p.risk) + ' pt = +' + USD(1.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 2</span><span><b style="color:var(--green)">' + P(p.t2) + '</b> <span class="sub">+' + P(2.5 * p.risk) + ' pt = +' + USD(2.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
       '<div class="row"><span class="lbl">Rischio / Rendimento</span><b>1:1.5 · 1:2.5</b></div>' +
       (a.sess.code !== 'rth' ? '<div class="row"><span class="sub" style="color:var(--amber)">⚠ Fuori sessione ufficiale: liquidità bassa, meglio solo osservare.</span></div>' : '');
   } else {
@@ -429,19 +439,19 @@ function renderInst(a, cfg) {
 
   box.innerHTML =
     '<div class="hero ' + a.azione + '">' +
-      '<div class="inst-name">' + esc(cfg.nome) + ' · <span class="sym">' + cfg.micro + '</span> <span style="font-weight:400;">(' + USD(1, cfg.multMicro) + '/punto)</span></div>' +
+      '<div class="inst-name">' + esc(cfg.nome) + ' · <span class="sym">' + esc(cfg.sym) + '</span></div>' +
       '<div class="hero-main">' +
         '<div class="action-word">' + a.azione + '</div>' +
         '<div class="hero-price">' + P(a.price) + '</div>' +
       '</div>' +
-      '<div class="hero-sub"><span class="live-dot"></span>fiducia ' + a.fiducia + ' · aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
+      '<div class="hero-sub"><span class="live-dot"></span>fiducia ' + a.fiducia + ' · ' + esc(cfg.sizeNota) + '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
     '</div>' +
     '<div class="chips">' +
       '<div class="chip"><span class="dot ' + macdDot + '"></span>MACD <b>' + a.macd.hist.toFixed(2) + '</b></div>' +
       '<div class="chip"><span class="dot ' + rsiDot + '"></span>RSI <b>' + a.rsi.toFixed(0) + '</b></div>' +
-      '<div class="chip"><span class="dot ' + vwapDot + '"></span>vs VWAP <b>' + (a.dist >= 0 ? '+' : '') + a.dist.toFixed(2) + '</b></div>' +
+      '<div class="chip"><span class="dot ' + vwapDot + '"></span>vs media <b>' + (a.dist >= 0 ? '+' : '') + a.dist.toFixed(2) + '</b></div>' +
     '</div>' +
-    '<div class="card"><h2>Piano operativo · 1 ' + cfg.micro + '</h2>' + pianoHtml + '</div>' +
+    '<div class="card"><h2>Piano operativo</h2>' + pianoHtml + '</div>' +
     '<div class="card"><h2>Livelli chiave</h2>' +
       '<div class="row"><span class="lbl">Massimo overnight</span><b>' + fmtL(a.onH) + '</b></div>' +
       '<div class="row"><span class="lbl">Minimo overnight</span><b>' + fmtL(a.onL) + '</b></div>' +
@@ -459,8 +469,8 @@ async function aggiornaLive() {
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
-    renderInst(analizza(d.es, STRUMENTI[0]), STRUMENTI[0]);
-    renderInst(analizza(d.gold, STRUMENTI[1]), STRUMENTI[1]);
+    renderInst(analizza(d.sp500, STRUMENTI[0]), STRUMENTI[0]);
+    renderInst(analizza(d.xau, STRUMENTI[1]), STRUMENTI[1]);
   } catch (e) {
     const msg = String(e && e.message || e);
     renderInst({ errore: msg }, STRUMENTI[0]);
