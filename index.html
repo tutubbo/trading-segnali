@@ -35,7 +35,6 @@
   .wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
   a { color: var(--blue); text-decoration: none; }
 
-  /* ── Header ── */
   header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 2px 4px; }
   .logo { font-size: 17px; font-weight: 900; letter-spacing: .8px; }
   .logo span { color: var(--blue); }
@@ -49,15 +48,11 @@
   .countdown { font-size: 12px; color: var(--muted); }
   .countdown b { color: var(--text); }
 
-  /* ── Due strumenti affiancati ── */
   .insts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
   @media (max-width: 880px) { .insts { grid-template-columns: 1fr; } }
   .inst { display: flex; flex-direction: column; gap: 12px; }
 
-  .hero {
-    border-radius: 20px; padding: 22px 24px; border: 1px solid var(--border);
-    background: var(--card);
-  }
+  .hero { border-radius: 20px; padding: 22px 24px; border: 1px solid var(--border); background: var(--card); }
   .hero.LONG  { border-color: rgba(47,224,138,.4);  box-shadow: 0 0 70px rgba(47,224,138,.13), inset 0 0 50px rgba(47,224,138,.05); }
   .hero.SHORT { border-color: rgba(255,93,108,.4);  box-shadow: 0 0 70px rgba(255,93,108,.13), inset 0 0 50px rgba(255,93,108,.05); }
   .hero.WAIT  { border-color: rgba(255,176,46,.35); box-shadow: 0 0 70px rgba(255,176,46,.09), inset 0 0 50px rgba(255,176,46,.04); }
@@ -72,13 +67,10 @@
   .hero-sub { color: var(--muted); font-size: 12px; margin-top: 9px; line-height: 1.6; }
   .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.6s infinite; margin-right: 5px; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .2; } }
+  .attivo-tag { display: inline-block; background: rgba(92,141,255,.15); color: #a5b8ff; border: 1px solid rgba(92,141,255,.35); font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; }
 
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip {
-    display: flex; align-items: center; gap: 7px;
-    background: var(--card); border: 1px solid var(--border); border-radius: 999px;
-    padding: 7px 13px; font-size: 12px; color: var(--muted);
-  }
+  .chip { display: flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 7px 13px; font-size: 12px; color: var(--muted); }
   .chip b { color: var(--text); font-family: var(--mono); font-weight: 600; }
   .chip .dot { width: 7px; height: 7px; border-radius: 50%; }
   .dot.up { background: var(--green); } .dot.down { background: var(--red); } .dot.flat { background: var(--muted); }
@@ -117,6 +109,25 @@
   .storico div { padding: 5px 0; font-size: 12.5px; color: var(--muted); }
   .storico b.LONG { color: var(--green); } .storico b.SHORT { color: var(--red); } .storico b.WAIT { color: var(--amber); }
 
+  /* ── Registro operazioni ── */
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; text-align: center; flex: 1; min-width: 110px; }
+  .stat .v { font-family: var(--mono); font-size: 19px; font-weight: 800; }
+  .stat .l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+  .trow { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; flex-wrap: wrap; }
+  .trow:last-child { border-bottom: none; }
+  .trow .quando { color: var(--muted); font-size: 11.5px; min-width: 88px; }
+  .trow .dir { font-weight: 800; min-width: 52px; }
+  .trow .dir.LONG { color: var(--green); } .trow .dir.SHORT { color: var(--red); }
+  .trow .px { font-family: var(--mono); color: var(--muted); }
+  .esito { font-weight: 800; font-size: 10.5px; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; }
+  .esito.target  { background: rgba(47,224,138,.12); color: var(--green); }
+  .esito.stop    { background: rgba(255,93,108,.12); color: var(--red); }
+  .esito.scaduto { background: var(--card2); color: var(--muted); }
+  .esito.aperto  { background: rgba(92,141,255,.15); color: #a5b8ff; }
+  .trow .pts { font-family: var(--mono); font-weight: 800; margin-left: auto; }
+  .pts.pos { color: var(--green); } .pts.neg { color: var(--red); }
+
   .foot { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.8; padding: 4px 0 12px; }
   .foot .rules { color: #a7b0c3; font-size: 11.5px; }
   .err { background: rgba(255,93,108,.08); border: 1px solid rgba(255,93,108,.3); color: #ffb3bb; padding: 16px 20px; border-radius: 18px; font-size: 13.5px; line-height: 1.6; }
@@ -140,12 +151,14 @@
     <div class="inst" id="inst-xau"><div class="card">Carico Oro…</div></div>
   </div>
 
+  <div id="log"></div>
+
   <div id="claude"></div>
 
   <div class="foot">
-    <div class="rules">Rischio max $20–60 a trade · massimo 3 trade al giorno · 2 perdite di fila = stop · mai in posizione durante CPI, NFP o FOMC</div>
+    <div class="rules">Rischio max $20–60 a trade · massimo 3 operazioni al giorno per strumento · pausa 90 min tra un segnale e l'altro · mai in posizione durante CPI, NFP o FOMC</div>
     Solo paper trading educativo — non è consulenza finanziaria. Il prezzo della tua piattaforma può differire di qualche
-    punto: usa le <b>distanze in punti</b> del piano, non i prezzi assoluti. I mercati a leva possono farti perdere più del deposito.
+    punto: usa la casella di calibrazione. I mercati a leva possono farti perdere più del deposito.
   </div>
 </div>
 
@@ -158,29 +171,31 @@
 const SB_URL = 'https://tpfgzbevpzpmlbzldihe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwZmd6YmV2cHpwbWxiemxkaWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODg0NTcsImV4cCI6MjA5ODc2NDQ1N30.fb3W1SGPqn4dyFOoRrdyr0UYX44XsI4iFIE51AFyG38';
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const P = (n) => n.toFixed(2);
+const P = (n) => (+n).toFixed(2);
 
-/* Ogni strumento: quanto vale 1 punto con la size consigliata e i
-   limiti di stop che corrispondono a un rischio di $20–60. */
 const STRUMENTI = [
   {
     key: 'sp500', boxId: 'inst-sp', nome: 'S&P 500', sym: 'SPX · US500',
-    sizeNota: '$5 per punto (1 MES o 5 unità CFD)',
+    sizeNota: '$5 per punto (5 lotti US500Cash o 1 MES)',
     multMicro: 5,
     riskMin: 4, riskMax: 12,
     mrDist: 8, glue: 2,
-    soloRTH: true            /* l'indice si muove solo in sessione USA */
+    soloRTH: true
   },
   {
-    key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD',
-    sizeNota: '$10 per punto (1 MGC o 10 once CFD)',
+    key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD · GOLD',
+    sizeNota: '$10 per punto (0.10 lotti GOLD o 1 MGC)',
     multMicro: 10,
     riskMin: 2, riskMax: 6,
     mrDist: 4, glue: 1,
-    soloRTH: false           /* l'oro spot gira quasi 24 ore */
+    soloRTH: false
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
+const CONFERME_RICHIESTE = 3;   /* il segnale deve reggere 3 controlli (~3 min) */
+const PAUSA_MIN = 90;           /* minuti di pausa dopo ogni operazione */
+const MAX_GIORNO = 3;           /* operazioni al giorno per strumento */
+const SCADENZA_ORE = 6;         /* chiusura a tempo */
 
 /* ════════════════════════════════════════════════════════════════
    OROLOGIO E SESSIONE (ora di New York)
@@ -290,7 +305,6 @@ function toBars(d) {
   }
   return bars;
 }
-/* Giorno della settimana da una dayKey 'YYYY-MM-DD' (0=dom, 6=sab) */
 const wdOf = (dayKey) => new Date(dayKey + 'T12:00:00Z').getUTCDay();
 
 /* ════════════════════════════════════════════════════════════════
@@ -308,7 +322,6 @@ function analizza(d, cfg) {
   const sess = sessionAt(nowET.day, nowMins);
   const inRTH = sess.code === 'rth';
 
-  /* Giornate feriali in orario USA (9:30–16:00 NY) per i livelli di ieri */
   const rthDays = {};
   for (const b of bars) {
     if (b.mins >= 570 && b.mins < 960 && wdOf(b.dayKey) !== 0 && wdOf(b.dayKey) !== 6) {
@@ -328,7 +341,6 @@ function analizza(d, cfg) {
   const pdl = pd.length ? Math.min(...pd.map(b => b.l)) : null;
   const pdc = pd.length ? pd[pd.length - 1].c : null;
 
-  /* Sessione notturna (dalle 18:00 NY) → massimo/minimo overnight */
   let gStart = bars.length - 1;
   for (let i = bars.length - 1; i > 0; i--) {
     const prev = bars[i - 1], cur = bars[i];
@@ -340,7 +352,6 @@ function analizza(d, cfg) {
   const onH = overnight.length ? Math.max(...overnight.map(b => b.h)) : null;
   const onL = overnight.length ? Math.min(...overnight.map(b => b.l)) : null;
 
-  /* VWAP (o media semplice se il volume non esiste, es. oro spot) */
   let vwapBars, vwapLabel;
   if (inRTH && rthDays[todayKey]) { vwapBars = rthDays[todayKey]; vwapLabel = 'VWAP (da apertura 15:30 it.)'; }
   else { vwapBars = bars.slice(gStart); vwapLabel = inRTH ? 'VWAP sessione' : 'VWAP ultima sessione'; }
@@ -357,7 +368,7 @@ function analizza(d, cfg) {
   const ageMin = (Date.now() / 1000 - last.t) / 60;
 
   const out = {
-    price, pdh, pdl, pdc, onH, onL, vwap, vwapLabel, macd, rsi, dist, sess,
+    price, pdh, pdl, pdc, onH, onL, vwap, vwapLabel, macd, rsi, dist, sess, bars,
     ageMin, azione: 'WAIT', fiducia: 'MEDIA', motivo: '', piano: null, tipo: ''
   };
 
@@ -406,43 +417,130 @@ function analizza(d, cfg) {
   }
   const sgn = dir === 'LONG' ? 1 : -1;
   out.azione = dir;
-  out.piano = { entrata: price, stop, risk, t1: price + sgn * 1.5 * risk, t2: price + sgn * 2.5 * risk };
+  /* Target vicini: T1 alla stessa distanza dello stop (1:1), T2 a 1.5x */
+  out.piano = { entrata: price, stop, risk, t1: price + sgn * 1.0 * risk, t2: price + sgn * 1.5 * risk };
   if (sess.code !== 'rth') out.fiducia = 'BASSA';
   return out;
 }
 
 /* ════════════════════════════════════════════════════════════════
-   RENDER
+   REGISTRO OPERAZIONI (database) — segnali congelati + esiti
    ════════════════════════════════════════════════════════════════ */
-const ULTIMO = {};
-function renderInst(a, cfg) {
+let TRADES = [];
+const PERSISTENZA = {};
+const DISPLAY = {};
+
+const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+
+async function caricaTrades() {
+  const r = await fetch(SB_URL + '/rest/v1/trades?select=*&order=created_at.desc&limit=40', { headers: sbHeaders });
+  if (r.ok) TRADES = await r.json();
+}
+
+/* Il segnale grezzo deve reggere N controlli di fila, poi rispettare pausa e limite giornaliero */
+function puoAprire(cfg, a) {
+  const st = PERSISTENZA[cfg.key] || { dir: null, count: 0 };
+  if (st.dir === a.azione) st.count++; else { st.dir = a.azione; st.count = 1; }
+  PERSISTENZA[cfg.key] = st;
+  if (st.count < CONFERME_RICHIESTE) { a.blocco = 'Segnale ' + a.azione + ' in conferma (' + st.count + '/' + CONFERME_RICHIESTE + ' controlli)… se regge, si apre.'; return false; }
+  const ultimo = TRADES.find(t => t.strumento === cfg.key);
+  if (ultimo) {
+    const min = (Date.now() - new Date(ultimo.created_at).getTime()) / 60000;
+    if (min < PAUSA_MIN) { a.blocco = 'Segnale ' + a.azione + ' presente, ma siamo in pausa di riflessione: prossima operazione possibile tra ' + Math.ceil(PAUSA_MIN - min) + ' min.'; return false; }
+  }
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const n = TRADES.filter(t => t.strumento === cfg.key && new Date(t.created_at) >= oggi).length;
+  if (n >= MAX_GIORNO) { a.blocco = 'Limite giornaliero raggiunto (' + MAX_GIORNO + ' operazioni su questo strumento): si riparte domani.'; return false; }
+  return true;
+}
+
+async function apriTrade(cfg, a) {
+  const p = a.piano;
+  const body = {
+    strumento: cfg.key, direzione: a.azione, tipo: a.tipo,
+    entrata: +P(p.entrata), stop: +P(p.stop), t1: +P(p.t1), t2: +P(p.t2), risk_pts: +P(p.risk)
+  };
+  const r = await fetch(SB_URL + '/rest/v1/trades', {
+    method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=representation' }, body: JSON.stringify(body)
+  });
+  if (!r.ok) return null;               /* 409 = già aperto da un altro dispositivo */
+  const rows = await r.json();
+  return rows[0] || null;
+}
+
+/* Controlla se un'operazione aperta ha toccato stop, target o è scaduta */
+function valutaTrade(t, bars, cfg) {
+  const start = new Date(t.created_at).getTime() / 1000;
+  const long = t.direzione === 'LONG';
+  const e = +t.entrata, stop = +t.stop, t1 = +t.t1;
+  for (const b of bars) {
+    if (b.t <= start) continue;
+    if (long ? b.l <= stop : b.h >= stop)
+      return { stato: 'stop', esito: +((long ? stop - e : e - stop)).toFixed(2), quando: b.t };
+    if (long ? b.h >= t1 : b.l <= t1)
+      return { stato: 'target', esito: +((long ? t1 - e : e - t1)).toFixed(2), quando: b.t };
+    if (b.t - start > SCADENZA_ORE * 3600 || (cfg.soloRTH && b.mins >= 950))
+      return { stato: 'scaduto', esito: +((long ? b.c - e : e - b.c)).toFixed(2), quando: b.t };
+  }
+  return null;
+}
+
+async function chiudiTrade(t, esito) {
+  await fetch(SB_URL + '/rest/v1/trades?id=eq.' + t.id + '&stato=eq.aperto', {
+    method: 'PATCH', headers: sbHeaders,
+    body: JSON.stringify({ stato: esito.stato, esito_pts: esito.esito, chiuso_at: new Date(esito.quando * 1000).toISOString() })
+  });
+  t.stato = esito.stato; t.esito_pts = esito.esito; t.chiuso_at = new Date(esito.quando * 1000).toISOString();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER STRUMENTO
+   ════════════════════════════════════════════════════════════════ */
+function renderInst(a, cfg, open) {
   const box = document.getElementById(cfg.boxId);
-  /* se stai scrivendo nella casella di calibrazione, salta questo giro */
   if (box.contains(document.activeElement) && document.activeElement.classList && document.activeElement.classList.contains('cal')) return;
   if (a.errore) {
     box.innerHTML = '<div class="err"><b>' + esc(cfg.nome) + '</b>: dati non disponibili (' + esc(a.errore) + '). Riprovo tra 60 secondi.</div>';
     return;
   }
-  ULTIMO[cfg.key] = a;
   const oraIT = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(new Date());
   const eta = a.ageMin > 90 ? fmtDur(Math.round(a.ageMin)) : Math.round(a.ageMin) + ' min';
+  const off = parseFloat(localStorage.getItem('sd_off_' + cfg.key)) || 0;
+  const adj = (v) => P(+v + off);
 
-  let pianoHtml;
-  if (a.piano) {
-    const p = a.piano;
-    const off = parseFloat(localStorage.getItem('sd_off_' + cfg.key)) || 0;
-    const adj = (v) => P(v + off);
+  let azione, heroExtra = '', pianoHtml;
+
+  if (open) {
+    /* ── Operazione ATTIVA: valori congelati dal registro ── */
+    azione = open.direzione;
+    DISPLAY[cfg.key] = { entrata: +open.entrata, stop: +open.stop, t1: +open.t1, t2: +open.t2 };
+    const long = open.direzione === 'LONG';
+    const pl = +( (long ? a.price - open.entrata : open.entrata - a.price) ).toFixed(2);
+    const plCls = pl >= 0 ? 'pos' : 'neg';
+    const da = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(new Date(open.created_at));
+    heroExtra = '<span class="attivo-tag">OPERAZIONE ATTIVA dalle ' + da + '</span> ' +
+      '<span class="pts ' + plCls + '" style="font-family:var(--mono);font-weight:800;">' + (pl >= 0 ? '+' : '') + pl + ' pt (' + (pl >= 0 ? '+' : '−') + USD(Math.abs(pl), cfg.multMicro).slice(1) + '$)</span>';
     pianoHtml =
       '<div class="row"><span class="lbl">Prezzo sul tuo broker <span class="sub">correggilo se diverso</span></span>' +
         '<input class="cal" type="number" step="0.01" inputmode="decimal" data-key="' + cfg.key + '" data-base="' + a.price + '" value="' + (a.price + off).toFixed(2) + '"></div>' +
-      '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(a.tipo) + ')</span></span><b id="px-' + cfg.key + '-e">' + adj(p.entrata) + '</b></div>' +
-      '<div class="row"><span class="lbl">Stop → campo S/L</span><span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(p.stop) + '</b> <span class="sub">−' + P(p.risk) + ' pt = −' + USD(p.risk, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">chiudi metà</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(p.t1) + '</b> <span class="sub">+' + P(1.5 * p.risk) + ' pt = +' + USD(1.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(p.t2) + '</b> <span class="sub">+' + P(2.5 * p.risk) + ' pt = +' + USD(2.5 * p.risk, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Rischio / Rendimento</span><b>1:1.5 · 1:2.5</b></div>' +
-      (a.sess.code !== 'rth' ? '<div class="row"><span class="sub" style="color:var(--amber)">⚠ Fuori sessione ufficiale: liquidità bassa, meglio solo osservare.</span></div>' : '');
+      '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(open.tipo || '') + ') — congelata</span></span><b id="px-' + cfg.key + '-e">' + adj(open.entrata) + '</b></div>' +
+      '<div class="row"><span class="lbl">Stop → campo S/L</span><span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(open.stop) + '</b> <span class="sub">−' + P(open.risk_pts) + ' pt = −' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">stessa distanza dello stop</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(open.t1) + '</b> <span class="sub">+' + P(open.risk_pts) + ' pt = +' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(open.t2) + '</b> <span class="sub">+' + P(1.5 * open.risk_pts) + ' pt = +' + USD(1.5 * +open.risk_pts, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Chiusura automatica</span><span class="sub">a target, a stop, o a tempo (' + SCADENZA_ORE + ' ore' + (cfg.soloRTH ? ' / fine sessione' : '') + ')</span></div>';
   } else {
-    pianoHtml = '<div class="noplan"><b>Niente trade adesso.</b><span class="why">' + esc(a.motivo) + '</span></div>';
+    azione = a.azione === 'WAIT' || a.blocco ? 'WAIT' : a.azione;
+    if (a.blocco) { pianoHtml = '<div class="noplan"><b>Niente trade adesso.</b><span class="why">' + esc(a.blocco) + '</span></div>'; }
+    else if (a.piano) {
+      /* segnale appena scattato ma non registrato (conflitto o rete): mostra comunque */
+      const p = a.piano;
+      DISPLAY[cfg.key] = { entrata: p.entrata, stop: p.stop, t1: p.t1, t2: p.t2 };
+      pianoHtml =
+        '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(a.tipo) + ')</span></span><b id="px-' + cfg.key + '-e">' + adj(p.entrata) + '</b></div>' +
+        '<div class="row"><span class="lbl">Stop → S/L</span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(p.stop) + '</b></div>' +
+        '<div class="row"><span class="lbl">Target 1 → T/P</span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(p.t1) + '</b></div>';
+    }
+    else { pianoHtml = '<div class="noplan"><b>Niente trade adesso.</b><span class="why">' + esc(a.motivo) + '</span></div>'; }
   }
 
   const fmtL = (v) => v === null ? '—' : P(v);
@@ -451,13 +549,14 @@ function renderInst(a, cfg) {
   const vwapDot = a.dist > cfg.glue ? 'up' : a.dist < -cfg.glue ? 'down' : 'flat';
 
   box.innerHTML =
-    '<div class="hero ' + a.azione + '">' +
+    '<div class="hero ' + azione + '">' +
       '<div class="inst-name">' + esc(cfg.nome) + ' · <span class="sym">' + esc(cfg.sym) + '</span></div>' +
       '<div class="hero-main">' +
-        '<div class="action-word">' + a.azione + '</div>' +
+        '<div class="action-word">' + azione + '</div>' +
         '<div class="hero-price">' + P(a.price) + '</div>' +
       '</div>' +
-      '<div class="hero-sub"><span class="live-dot"></span>fiducia ' + a.fiducia + ' · ' + esc(cfg.sizeNota) + '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
+      (heroExtra ? '<div style="margin-top:10px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">' + heroExtra + '</div>' : '') +
+      '<div class="hero-sub"><span class="live-dot"></span>' + (open ? 'operazione in corso · ' : 'fiducia ' + a.fiducia + ' · ') + esc(cfg.sizeNota) + '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
     '</div>' +
     '<div class="chips">' +
       '<div class="chip"><span class="dot ' + macdDot + '"></span>MACD <b>' + a.macd.hist.toFixed(2) + '</b></div>' +
@@ -475,8 +574,7 @@ function renderInst(a, cfg) {
     '</div>';
 }
 
-/* Calibrazione: scrivi il prezzo del tuo broker → stop e target si spostano
-   della stessa differenza. La differenza resta salvata per i prossimi segnali. */
+/* Calibrazione broker: la differenza si applica ai valori mostrati e resta salvata */
 document.addEventListener('input', (e) => {
   const el = e.target && e.target.classList && e.target.classList.contains('cal') ? e.target : null;
   if (!el) return;
@@ -485,26 +583,90 @@ document.addEventListener('input', (e) => {
   const v = parseFloat(el.value);
   const off = isNaN(v) ? 0 : +(v - base).toFixed(2);
   localStorage.setItem('sd_off_' + key, off);
-  const a = ULTIMO[key];
-  if (!a || !a.piano) return;
-  const p = a.piano;
-  const set = (suf, val) => { const n = document.getElementById('px-' + key + '-' + suf); if (n) n.textContent = val.toFixed(2); };
-  set('e', p.entrata + off); set('s', p.stop + off); set('1', p.t1 + off); set('2', p.t2 + off);
+  const p = DISPLAY[key];
+  if (!p) return;
+  const set = (suf, val) => { const n = document.getElementById('px-' + key + '-' + suf); if (n) n.textContent = (val + off).toFixed(2); };
+  set('e', p.entrata); set('s', p.stop); set('1', p.t1); set('2', p.t2);
 });
 
+/* ════════════════════════════════════════════════════════════════
+   RENDER REGISTRO
+   ════════════════════════════════════════════════════════════════ */
+function renderLog() {
+  const box = document.getElementById('log');
+  const cfgOf = (k) => STRUMENTI.find(s => s.key === k) || STRUMENTI[0];
+  if (!TRADES.length) {
+    box.innerHTML = '<div class="card"><h2>Registro operazioni</h2><div class="prose" style="color:var(--muted);font-size:13px;">Ancora vuoto: il primo segnale che scatta viene registrato qui in automatico, con entrata, stop, target e — quando si chiude — l\'esito. Così vedi nero su bianco se il sistema funziona.</div></div>';
+    return;
+  }
+  const chiusi = TRADES.filter(t => t.stato !== 'aperto');
+  const vinte = chiusi.filter(t => +t.esito_pts > 0).length;
+  const usdTot = chiusi.reduce((s, t) => s + (+t.esito_pts) * cfgOf(t.strumento).multMicro, 0);
+  const winRate = chiusi.length ? Math.round(vinte / chiusi.length * 100) : 0;
+
+  const statoLbl = { aperto: 'APERTA', target: 'TARGET ✓', stop: 'STOP ✗', scaduto: 'A TEMPO' };
+  const dtf = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  box.innerHTML =
+    '<div class="card"><h2>Registro operazioni <span style="font-weight:400;letter-spacing:0;text-transform:none;">(automatico — anche se non le esegui su MT5)</span></h2>' +
+    '<div class="stats">' +
+      '<div class="stat"><div class="v">' + chiusi.length + '</div><div class="l">chiuse</div></div>' +
+      '<div class="stat"><div class="v" style="color:' + (winRate >= 50 ? 'var(--green)' : 'var(--amber)') + '">' + winRate + '%</div><div class="l">vinte</div></div>' +
+      '<div class="stat"><div class="v ' + (usdTot >= 0 ? 'pts pos' : 'pts neg') + '" style="color:' + (usdTot >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (usdTot >= 0 ? '+' : '') + usdTot.toFixed(0) + '$</div><div class="l">risultato totale</div></div>' +
+    '</div>' +
+    TRADES.slice(0, 15).map(t => {
+      const cfg = cfgOf(t.strumento);
+      const pts = t.esito_pts !== null && t.esito_pts !== undefined ? +t.esito_pts : null;
+      return '<div class="trow">' +
+        '<span class="quando">' + dtf.format(new Date(t.created_at)) + '</span>' +
+        '<span>' + esc(cfg.nome) + '</span>' +
+        '<span class="dir ' + esc(t.direzione) + '">' + esc(t.direzione) + '</span>' +
+        '<span class="px">' + P(t.entrata) + '</span>' +
+        '<span class="esito ' + esc(t.stato) + '">' + (statoLbl[t.stato] || t.stato) + '</span>' +
+        (pts !== null ? '<span class="pts ' + (pts >= 0 ? 'pos' : 'neg') + '">' + (pts >= 0 ? '+' : '') + pts.toFixed(2) + ' pt (' + (pts >= 0 ? '+' : '') + (pts * cfg.multMicro).toFixed(0) + '$)</span>' : '<span class="pts" style="color:var(--muted)">in corso…</span>') +
+      '</div>';
+    }).join('') +
+    '</div>';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CICLO PRINCIPALE
+   ════════════════════════════════════════════════════════════════ */
 async function aggiornaLive() {
   try {
-    const r = await fetch(SB_URL + '/functions/v1/es-data', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    renderInst(analizza(d.sp500, STRUMENTI[0]), STRUMENTI[0]);
-    renderInst(analizza(d.xau, STRUMENTI[1]), STRUMENTI[1]);
+    const [rd] = await Promise.all([
+      fetch(SB_URL + '/functions/v1/es-data', { headers: sbHeaders }),
+      caricaTrades().catch(() => {})
+    ]);
+    if (!rd.ok) throw new Error('HTTP ' + rd.status);
+    const d = await rd.json();
+
+    for (const cfg of STRUMENTI) {
+      const a = analizza(d[cfg.key], cfg);
+      let open = TRADES.find(t => t.strumento === cfg.key && t.stato === 'aperto');
+
+      /* 1. Se c'è un'operazione aperta: controlla se si è chiusa */
+      if (open && !a.errore) {
+        const esito = valutaTrade(open, a.bars, cfg);
+        if (esito) { await chiudiTrade(open, esito); open = null; }
+      }
+
+      /* 2. Se non c'è: valuta se aprirne una nuova (con conferme, pausa, limite) */
+      if (!open && !a.errore && a.piano) {
+        if (puoAprire(cfg, a)) {
+          const nuovo = await apriTrade(cfg, a);
+          if (nuovo) { TRADES.unshift(nuovo); open = nuovo; }
+        }
+      } else if (!a.errore && !a.piano) {
+        PERSISTENZA[cfg.key] = { dir: null, count: 0 };
+      }
+
+      renderInst(a, cfg, open);
+    }
+    renderLog();
   } catch (e) {
     const msg = String(e && e.message || e);
-    renderInst({ errore: msg }, STRUMENTI[0]);
-    renderInst({ errore: msg }, STRUMENTI[1]);
+    for (const cfg of STRUMENTI) renderInst({ errore: msg }, cfg, null);
   }
 }
 
@@ -533,9 +695,7 @@ function renderClaude(signals) {
 
 async function aggiornaClaude() {
   try {
-    const r = await fetch(SB_URL + '/rest/v1/signals?select=payload&order=created_at.desc&limit=20', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
+    const r = await fetch(SB_URL + '/rest/v1/signals?select=payload&order=created_at.desc&limit=20', { headers: sbHeaders });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = await r.json();
     if (!rows.length) throw new Error('database vuoto');
