@@ -128,6 +128,12 @@
   .trow .pts { font-family: var(--mono); font-weight: 800; margin-left: auto; }
   .pts.pos { color: var(--green); } .pts.neg { color: var(--red); }
 
+  .wipe {
+    margin-left: auto; background: transparent; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 4px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+    font-family: Inter, sans-serif; letter-spacing: .5px;
+  }
+  .wipe:hover { border-color: rgba(255,93,108,.5); color: var(--red); }
   .foot { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.8; padding: 4px 0 12px; }
   .foot .rules { color: #a7b0c3; font-size: 11.5px; }
   .err { background: rgba(255,93,108,.08); border: 1px solid rgba(255,93,108,.3); color: #ffb3bb; padding: 16px 20px; border-radius: 18px; font-size: 13.5px; line-height: 1.6; }
@@ -574,6 +580,23 @@ function renderInst(a, cfg, open) {
     '</div>';
 }
 
+/* Tasto "Svuota registro": chiede conferma, poi cancella tutte le operazioni */
+document.addEventListener('click', async (e) => {
+  if (!e.target || e.target.id !== 'btnSvuota') return;
+  if (!window.confirm('Vuoi cancellare TUTTO il registro delle operazioni?\nStatistiche e storico ripartiranno da zero. Non si può annullare.')) return;
+  e.target.disabled = true;
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/trades?id=gt.0', { method: 'DELETE', headers: sbHeaders });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    TRADES = [];
+    Object.keys(PERSISTENZA).forEach(k => PERSISTENZA[k] = { dir: null, count: 0 });
+    renderLog();
+  } catch (err) {
+    alert('Non sono riuscito a svuotare il registro (' + (err && err.message || err) + '). Riprova.');
+    e.target.disabled = false;
+  }
+});
+
 /* Calibrazione broker: la differenza si applica ai valori mostrati e resta salvata */
 document.addEventListener('input', (e) => {
   const el = e.target && e.target.classList && e.target.classList.contains('cal') ? e.target : null;
@@ -608,7 +631,8 @@ function renderLog() {
   const dtf = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   box.innerHTML =
-    '<div class="card"><h2>Registro operazioni <span style="font-weight:400;letter-spacing:0;text-transform:none;">(automatico — anche se non le esegui su MT5)</span></h2>' +
+    '<div class="card"><h2 style="display:flex;align-items:center;gap:10px;">Registro operazioni <span style="font-weight:400;letter-spacing:0;text-transform:none;">(automatico — anche se non le esegui su MT5)</span>' +
+      '<button class="wipe" id="btnSvuota">🗑 Svuota</button></h2>' +
     '<div class="stats">' +
       '<div class="stat"><div class="v">' + chiusi.length + '</div><div class="l">chiuse</div></div>' +
       '<div class="stat"><div class="v" style="color:' + (winRate >= 50 ? 'var(--green)' : 'var(--amber)') + '">' + winRate + '%</div><div class="l">vinte</div></div>' +
