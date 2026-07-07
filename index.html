@@ -198,10 +198,7 @@ const STRUMENTI = [
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
-const CONFERME_RICHIESTE = 3;   /* il segnale deve reggere 3 controlli (~3 min) */
-const PAUSA_MIN = 90;           /* minuti di pausa dopo ogni operazione */
-const MAX_GIORNO = 3;           /* operazioni al giorno per strumento */
-const SCADENZA_ORE = 6;         /* chiusura a tempo */
+const SCADENZA_ORE = 6;         /* chiusura a tempo (la gestisce il motore sul server) */
 
 /* ════════════════════════════════════════════════════════════════
    OROLOGIO E SESSIONE (ora di New York)
@@ -433,7 +430,6 @@ function analizza(d, cfg) {
    REGISTRO OPERAZIONI (database) — segnali congelati + esiti
    ════════════════════════════════════════════════════════════════ */
 let TRADES = [];
-const PERSISTENZA = {};
 const DISPLAY = {};
 
 const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
@@ -442,62 +438,8 @@ async function caricaTrades() {
   const r = await fetch(SB_URL + '/rest/v1/trades?select=*&order=created_at.desc&limit=40', { headers: sbHeaders });
   if (r.ok) TRADES = await r.json();
 }
-
-/* Il segnale grezzo deve reggere N controlli di fila, poi rispettare pausa e limite giornaliero */
-function puoAprire(cfg, a) {
-  const st = PERSISTENZA[cfg.key] || { dir: null, count: 0 };
-  if (st.dir === a.azione) st.count++; else { st.dir = a.azione; st.count = 1; }
-  PERSISTENZA[cfg.key] = st;
-  if (st.count < CONFERME_RICHIESTE) { a.blocco = 'Segnale ' + a.azione + ' in conferma (' + st.count + '/' + CONFERME_RICHIESTE + ' controlli)… se regge, si apre.'; return false; }
-  const ultimo = TRADES.find(t => t.strumento === cfg.key);
-  if (ultimo) {
-    const min = (Date.now() - new Date(ultimo.created_at).getTime()) / 60000;
-    if (min < PAUSA_MIN) { a.blocco = 'Segnale ' + a.azione + ' presente, ma siamo in pausa di riflessione: prossima operazione possibile tra ' + Math.ceil(PAUSA_MIN - min) + ' min.'; return false; }
-  }
-  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-  const n = TRADES.filter(t => t.strumento === cfg.key && new Date(t.created_at) >= oggi).length;
-  if (n >= MAX_GIORNO) { a.blocco = 'Limite giornaliero raggiunto (' + MAX_GIORNO + ' operazioni su questo strumento): si riparte domani.'; return false; }
-  return true;
-}
-
-async function apriTrade(cfg, a) {
-  const p = a.piano;
-  const body = {
-    strumento: cfg.key, direzione: a.azione, tipo: a.tipo,
-    entrata: +P(p.entrata), stop: +P(p.stop), t1: +P(p.t1), t2: +P(p.t2), risk_pts: +P(p.risk)
-  };
-  const r = await fetch(SB_URL + '/rest/v1/trades', {
-    method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=representation' }, body: JSON.stringify(body)
-  });
-  if (!r.ok) return null;               /* 409 = già aperto da un altro dispositivo */
-  const rows = await r.json();
-  return rows[0] || null;
-}
-
-/* Controlla se un'operazione aperta ha toccato stop, target o è scaduta */
-function valutaTrade(t, bars, cfg) {
-  const start = new Date(t.created_at).getTime() / 1000;
-  const long = t.direzione === 'LONG';
-  const e = +t.entrata, stop = +t.stop, t1 = +t.t1;
-  for (const b of bars) {
-    if (b.t <= start) continue;
-    if (long ? b.l <= stop : b.h >= stop)
-      return { stato: 'stop', esito: +((long ? stop - e : e - stop)).toFixed(2), quando: b.t };
-    if (long ? b.h >= t1 : b.l <= t1)
-      return { stato: 'target', esito: +((long ? t1 - e : e - t1)).toFixed(2), quando: b.t };
-    if (b.t - start > SCADENZA_ORE * 3600 || (cfg.soloRTH && b.mins >= 950))
-      return { stato: 'scaduto', esito: +((long ? b.c - e : e - b.c)).toFixed(2), quando: b.t };
-  }
-  return null;
-}
-
-async function chiudiTrade(t, esito) {
-  await fetch(SB_URL + '/rest/v1/trades?id=eq.' + t.id + '&stato=eq.aperto', {
-    method: 'PATCH', headers: sbHeaders,
-    body: JSON.stringify({ stato: esito.stato, esito_pts: esito.esito, chiuso_at: new Date(esito.quando * 1000).toISOString() })
-  });
-  t.stato = esito.stato; t.esito_pts = esito.esito; t.chiuso_at = new Date(esito.quando * 1000).toISOString();
-}
+/* Aperture e chiusure le fa il MOTORE sul server, ogni minuto, anche a
+   pagina chiusa — e manda le notifiche Telegram. La pagina mostra e basta. */
 
 /* ════════════════════════════════════════════════════════════════
    RENDER STRUMENTO
@@ -589,7 +531,6 @@ document.addEventListener('click', async (e) => {
     const r = await fetch(SB_URL + '/rest/v1/trades?id=gt.0', { method: 'DELETE', headers: sbHeaders });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     TRADES = [];
-    Object.keys(PERSISTENZA).forEach(k => PERSISTENZA[k] = { dir: null, count: 0 });
     renderLog();
   } catch (err) {
     alert('Non sono riuscito a svuotare il registro (' + (err && err.message || err) + '). Riprova.');
@@ -667,24 +608,10 @@ async function aggiornaLive() {
 
     for (const cfg of STRUMENTI) {
       const a = analizza(d[cfg.key], cfg);
-      let open = TRADES.find(t => t.strumento === cfg.key && t.stato === 'aperto');
-
-      /* 1. Se c'è un'operazione aperta: controlla se si è chiusa */
-      if (open && !a.errore) {
-        const esito = valutaTrade(open, a.bars, cfg);
-        if (esito) { await chiudiTrade(open, esito); open = null; }
-      }
-
-      /* 2. Se non c'è: valuta se aprirne una nuova (con conferme, pausa, limite) */
+      const open = TRADES.find(t => t.strumento === cfg.key && t.stato === 'aperto');
       if (!open && !a.errore && a.piano) {
-        if (puoAprire(cfg, a)) {
-          const nuovo = await apriTrade(cfg, a);
-          if (nuovo) { TRADES.unshift(nuovo); open = nuovo; }
-        }
-      } else if (!a.errore && !a.piano) {
-        PERSISTENZA[cfg.key] = { dir: null, count: 0 };
+        a.blocco = 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato: il motore sul server lo sta confermando — se regge qualche minuto apre l\'operazione e manda la notifica Telegram.';
       }
-
       renderInst(a, cfg, open);
     }
     renderLog();

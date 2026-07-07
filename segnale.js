@@ -6,6 +6,52 @@
    ═══════════════════════════════════════════════════════════════ */
 window.SIGNALS = [
   {
+    quando: "Martedì 7 luglio 2026 (ora italiana)",
+    azione: "WAIT",
+    fiducia: "BASSA",
+    prezzo: "7537.43 (ultima chiusura SPX)",
+    contratto: "SPX / US500 · oro XAU/USD",
+    sessione: "Sessione USA in corso/pre-market europeo. Dow sopra 53.000 per la prima volta, S&P 500 vicino ai massimi storici dopo il rally di lunedì trainato dalle mega-cap tech (AI).",
+    piano: null,
+    livelli: [
+      ["Massimo di lunedì 6/7", "7547.00"],
+      ["Chiusura di lunedì 6/7", "7537.43"],
+      ["Supporto psicologico", "7500.00"],
+      ["Dow Jones", "sopra 53.000 (record)"],
+      ["Oro spot (XAU/USD) attuale", "4152.00"],
+      ["Oro — range di lunedì", "4128.55 - 4202.49"],
+      ["Rendimento Treasury 10 anni", "~4.47% (in calo)"]
+    ],
+    scorecard: [
+      { nome: "MACD (momentum)", esito: "NEUTRAL", nota: "Calcolato in tempo reale dalla dashboard ogni 60 secondi: non verificabile da ricerca web, nessun dato indipendente disponibile." },
+      { nome: "RSI + media di sessione", esito: "NEUTRAL", nota: "Idem: valore live gestito dal motore della dashboard, non riproducibile qui." },
+      { nome: "CVD / flusso di denaro", esito: "NEUTRAL", nota: "Idem: richiede dati tick-by-tick che solo il motore live della pagina possiede." },
+      { nome: "Pattern storico / regime", esito: "NEUTRAL", nota: "Trend rialzista forte e nuovi massimi, ma si arriva alla vigilia di un evento macro chiave (minute Fed) e dell'apertura della stagione delle trimestrali: storicamente il giorno prima di questi eventi il mercato tende a muoversi poco e in modo erratico." },
+      { nome: "News / Macro", esito: "NEUTRAL", nota: "Segnali contrastanti: dati sul lavoro di giugno deboli (+57.000) spingono verso un taglio Fed a settembre, ma il neo-presidente Warsh ha detto che l'inflazione resta 'troppo alta' e i dazi commerciali restano un rischio inflattivo." }
+    ],
+    ragionamento: "Il mercato USA resta in un trend rialzista forte, con il Dow sopra i 53.000 per la prima volta grazie al ritorno dell'entusiasmo sull'intelligenza artificiale tra le mega-cap tech. Ma il quadro macro è contraddittorio: il report sul lavoro di giugno debole ha riacceso le scommesse su un taglio dei tassi a settembre, mentre il presidente Fed Warsh parla ancora di inflazione troppo alta — un mix che rende rischioso aprire posizioni proprio alla vigilia delle minute Fed di mercoledì. Sull'oro: il metallo ha arretrato verso 4150 dollari per un dollaro più forte, ma il supporto resta solido grazie ai forti acquisti delle banche centrali e alle attese di tassi reali più bassi.",
+    daFare: [
+      "Mercoledì 8 luglio, ore 20:00 circa (ora italiana): escono le minute della Fed, il primo meeting guidato dal presidente Warsh — non aprire posizioni nelle ore immediatamente prima e dopo.",
+      "Martedì 14 luglio: CPI di giugno, il prossimo grande dato macro da segnare in calendario.",
+      "Seguire i discorsi dei membri Fed nei prossimi giorni per capire se prevale l'ala favorevole al taglio o quella per il rialzo dopo il jobs report debole.",
+      "Sull'oro: monitorare il Dollar Index (DXY) e il rendimento reale a 10 anni — un dollaro più debole dopo le minute potrebbe far ripartire l'oro verso l'area 4200.",
+      "Attenzione all'apertura della stagione delle trimestrali Q2 nei prossimi giorni: possibile volatilità aggiuntiva su tech e megacap."
+    ],
+    news: {
+      titolo: "Nonfarm payrolls di giugno deludono (+57.000 posti); il presidente Fed Warsh dice che l'inflazione resta 'troppo alta' mentre alcuni membri vedono ancora un rialzo: mercati indecisi in vista delle minute Fed di mercoledì.",
+      sentiment: "NEUTRAL"
+    },
+    fonti: [
+      ["Yahoo Finance — mercati oggi", "https://finance.yahoo.com/markets/stocks/live/stock-market-today-monday-july-7-225645420.html"],
+      ["TheStreet — Dow sopra 53.000", "https://www.thestreet.com/stock-market-today/stock-market-today-dow-jones-sp-500-nasdaq-updates-july-6-2026"],
+      ["CNBC — Kevin Warsh al forum BCE", "https://www.cnbc.com/2026/07/01/kevin-warsh-ecb-forum-live-updates.html"],
+      ["HeyGoTrade — outlook settimanale minute Fed e trimestrali", "https://www.heygotrade.com/en/news/weekly-economic-outlook-2026-07-06/"],
+      ["Investing.com — XAU/USD", "https://www.investing.com/currencies/xau-usd"],
+      ["RoboForex — analisi oro 6 luglio", "https://roboforex.com/beginners/analytics/forex-forecast/commodities/xau-usd-gold-forecast-2026-07-06/"],
+      ["BLS — calendario CPI/NFP 2026", "https://www.bls.gov/schedule/2026/home.htm"]
+    ]
+  },
+  {
     quando: "Sabato 4 luglio 2026 — 21:45 (ora italiana)",
     azione: "WAIT",
     fiducia: "ALTA",
