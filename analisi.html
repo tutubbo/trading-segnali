@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio — analisi del bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070d;
+    --card: rgba(20, 26, 40, .72);
+    --card2: rgba(28, 35, 54, .65);
+    --border: #222b40;
+    --text: #eef1f7;
+    --muted: #8792a8;
+    --green: #2fe08a;
+    --red: #ff5d6c;
+    --amber: #ffb02e;
+    --blue: #5c8dff;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); }
+  body {
+    background:
+      radial-gradient(1100px 500px at 75% -10%, rgba(80, 46, 140, .25) 0%, transparent 60%),
+      radial-gradient(800px 400px at -10% 20%, rgba(30, 90, 70, .12) 0%, transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: Inter, "Segoe UI", system-ui, sans-serif;
+    padding: 16px; min-height: 100vh;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  a { color: var(--blue); text-decoration: none; }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 2px 4px; }
+  .logo { font-size: 17px; font-weight: 900; letter-spacing: .8px; }
+  .logo span { color: #b18cff; }
+  .back { margin-left: auto; font-size: 13px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; }
+  .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--muted); margin-bottom: 12px; font-weight: 800; }
+  .prose { font-size: 13.5px; line-height: 1.7; color: #cdd4e3; }
+  .hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+  .stat { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; text-align: center; flex: 1; min-width: 100px; }
+  .stat .v { font-family: var(--mono); font-size: 18px; font-weight: 800; }
+  .stat .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+  .pos { color: var(--green); } .neg { color: var(--red); } .neu { color: var(--amber); }
+
+  .trow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; flex-wrap: wrap; }
+  .trow:last-child { border-bottom: none; }
+  .trow .quando { color: var(--muted); min-width: 84px; }
+  .trow .dir { font-weight: 800; min-width: 46px; }
+  .trow .dir.LONG { color: var(--green); } .trow .dir.SHORT { color: var(--red); }
+  .trow .px { font-family: var(--mono); color: var(--muted); }
+  .esito { font-weight: 800; font-size: 10px; padding: 3px 9px; border-radius: 999px; letter-spacing: .5px; }
+  .esito.target { background: rgba(47,224,138,.12); color: var(--green); }
+  .esito.stop { background: rgba(255,93,108,.12); color: var(--red); }
+  .esito.scaduto, .esito.aperto-fine-dati { background: var(--card2); color: var(--muted); }
+  .pts { font-family: var(--mono); font-weight: 800; }
+
+  ul.oss { list-style: none; margin-top: 8px; }
+  ul.oss li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; line-height: 1.6; color: #cdd4e3; }
+  ul.oss li:last-child { border-bottom: none; }
+  ul.oss li::before { content: "💡 "; }
+
+  .fatta-btn {
+    background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+  }
+  .fatta-btn.si { background: rgba(47,224,138,.12); color: var(--green); border-color: rgba(47,224,138,.35); }
+  input.eur {
+    width: 84px; background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 5px 8px; font-family: var(--mono); font-size: 12px; text-align: right;
+  }
+  input.eur:focus { outline: none; border-color: var(--blue); }
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; font-size: 12px; color: var(--muted); padding: 6px 0; }
+  .foot { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.8; padding: 4px 0 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">🔬 <span>LABORATORIO</span></div>
+    <a class="back" href="index.html">← Torna alla dashboard</a>
+  </header>
+
+  <div class="card prose">
+    Questa pagina serve a capire <b>se il bot funziona</b> e dove si può migliorare. Non dà segnali:
+    li analizza. Due strumenti: il <b>backtest</b> (le regole del motore rigiocate sui dati degli ultimi giorni)
+    e il <b>diario</b> (confronto tra le operazioni del sistema e quelle che hai eseguito davvero su MT5).
+  </div>
+
+  <div class="card" id="bt"><h2>Backtest — le regole sui dati recenti</h2><div class="hint">Scarico i dati e rigioco le regole…</div></div>
+
+  <div class="card" id="diario"><h2>Diario — sistema vs le tue esecuzioni</h2><div class="hint">Carico il registro…</div></div>
+
+  <div class="foot">
+    Il backtest copre solo pochi giorni di dati gratuiti: è un'indicazione, non una promessa.
+    Nel test l'ingresso avviene alla barra successiva al segnale (5 minuti), senza spread né slippage:
+    la realtà è sempre un po' peggio. Solo paper trading educativo.
+  </div>
+</div>
+
+<script>
+'use strict';
+const SB_URL = 'https://tpfgzbevpzpmlbzldihe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwZmd6YmV2cHpwbWxiemxkaWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODg0NTcsImV4cCI6MjA5ODc2NDQ1N30.fb3W1SGPqn4dyFOoRrdyr0UYX44XsI4iFIE51AFyG38';
+const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const P = (n) => (+n).toFixed(2);
+
+const STRUMENTI = [
+  { key: 'sp500', nome: 'S&P 500', mult: 5, riskMin: 4, riskMax: 12, mrDist: 8, glue: 2, soloRTH: true },
+  { key: 'xau', nome: 'Oro', mult: 10, riskMin: 2, riskMax: 6, mrDist: 4, glue: 1, soloRTH: false }
+];
+
+/* ── indicatori e barre (identici al motore) ── */
+function ema(v, p) { const k = 2 / (p + 1); const o = [v[0]]; for (let i = 1; i < v.length; i++) o.push(v[i] * k + o[i - 1] * (1 - k)); return o; }
+function macdOf(c) {
+  const e12 = ema(c, 12), e26 = ema(c, 26);
+  const line = c.map((_, i) => e12[i] - e26[i]);
+  const sig = ema(line, 9);
+  const n = c.length - 1;
+  return { line: line[n], signal: sig[n], hist: line[n] - sig[n] };
+}
+function rsiOf(c, p) {
+  let g = 0, l = 0;
+  for (let i = 1; i <= p; i++) { const d = c[i] - c[i - 1]; if (d >= 0) g += d; else l -= d; }
+  g /= p; l /= p;
+  for (let i = p + 1; i < c.length; i++) { const d = c[i] - c[i - 1]; g = (g * (p - 1) + Math.max(d, 0)) / p; l = (l * (p - 1) + Math.max(-d, 0)) / p; }
+  if (l === 0) return 100;
+  return 100 - 100 / (1 + g / l);
+}
+const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+function toBars(d) {
+  const bars = [];
+  for (let i = 0; i < d.t.length; i++) {
+    if (d.c[i] == null) continue;
+    const parts = etFmt.formatToParts(new Date(d.t[i] * 1000));
+    const g = (t) => parts.find((p) => p.type === t).value;
+    bars.push({ t: d.t[i], o: d.o[i], h: d.h[i], l: d.l[i], c: d.c[i], v: d.v[i] || 0, mins: (+g('hour') % 24) * 60 + (+g('minute')), dayKey: g('year') + '-' + g('month') + '-' + g('day') });
+  }
+  return bars;
+}
+const wdOf = (k) => new Date(k + 'T12:00:00Z').getUTCDay();
+
+/* ── BACKTEST: rigioca le regole barra per barra ── */
+function backtest(d, cfg) {
+  const out = { trades: [], scartatiStopLargo: 0, barre: 0 };
+  if (!d || d.error) return out;
+  const bars = toBars(d);
+  out.barre = bars.length;
+  if (bars.length < 80) return out;
+
+  let open = null, lastT = -Infinity;
+  const perDay = {};
+
+  for (let i = 60; i < bars.length; i++) {
+    const b = bars[i];
+    const wd = wdOf(b.dayKey);
+    const inRTH = b.mins >= 570 && b.mins < 960 && wd !== 0 && wd !== 6;
+
+    /* gestione operazione aperta */
+    if (open) {
+      const long = open.dir === 'LONG';
+      let ch = null;
+      if (long ? b.l <= open.stop : b.h >= open.stop) ch = { stato: 'stop', esito: long ? open.stop - open.entrata : open.entrata - open.stop };
+      else if (long ? b.h >= open.t1 : b.l <= open.t1) ch = { stato: 'target', esito: long ? open.t1 - open.entrata : open.entrata - open.t1 };
+      else if (b.t - open.t0 > 6 * 3600 || (cfg.soloRTH && b.mins >= 950)) ch = { stato: 'scaduto', esito: long ? b.c - open.entrata : open.entrata - b.c };
+      if (ch) { out.trades.push({ ...open, stato: ch.stato, esito: +ch.esito.toFixed(2), tEnd: b.t, durataMin: Math.round((b.t - open.t0) / 60) }); open = null; }
+      continue;
+    }
+
+    /* porte di sessione (le stesse del motore) */
+    if (cfg.soloRTH && !inRTH) continue;
+    if (!cfg.soloRTH) {
+      const chiuso = wd === 6 || (wd === 0 && b.mins < 1080) || (wd === 5 && b.mins >= 1020) || (b.mins >= 1020 && b.mins < 1080);
+      if (chiuso) continue;
+    }
+    if (inRTH && b.mins < 585) continue;
+    if (b.t - lastT < 90 * 60) continue;
+    if ((perDay[b.dayKey] || 0) >= 3) continue;
+
+    /* indicatori alla barra i */
+    const closes = bars.slice(Math.max(0, i - 200), i + 1).map(x => x.c);
+    if (closes.length < 60) continue;
+    const macd = macdOf(closes);
+    const rsi = rsiOf(closes.slice(-80), 14);
+
+    /* media di sessione: dall'apertura RTH del giorno (indice) o dalle 18:00 NY (oro) */
+    let j = i;
+    while (j > 0 && i - j < 300) {
+      const pb = bars[j - 1], cb = bars[j];
+      if (inRTH && cfg.soloRTH) { if (cb.dayKey === b.dayKey && cb.mins >= 570 && (pb.mins < 570 || pb.dayKey !== b.dayKey)) break; }
+      else { if (cb.mins >= 1080 && (pb.mins < 1080 || pb.dayKey !== cb.dayKey)) break; }
+      j--;
+    }
+    const sess = bars.slice(Math.max(0, j), i + 1);
+    let pv = 0, vv = 0, ts = 0;
+    for (const x of sess) { const tp = (x.h + x.l + x.c) / 3; pv += tp * x.v; vv += x.v; ts += tp; }
+    const vwap = vv > 0 ? pv / vv : ts / sess.length;
+
+    const price = b.c;
+    const dist = price - vwap;
+    const macdLong = macd.line > macd.signal;
+    let dir = null, tipo = '';
+    if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; tipo = 'ritorno alla media'; }
+    else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; tipo = 'ritorno alla media'; }
+    else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) { dir = 'LONG'; tipo = 'trend'; }
+    else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) { dir = 'SHORT'; tipo = 'trend'; }
+    if (!dir) continue;
+
+    const rec = bars.slice(i - 5, i + 1);
+    let risk;
+    if (dir === 'LONG') risk = price - (Math.min(...rec.map(x => x.l)) - 0.5);
+    else risk = (Math.max(...rec.map(x => x.h)) + 0.5) - price;
+    if (risk < cfg.riskMin) risk = cfg.riskMin;
+    if (risk > cfg.riskMax) { out.scartatiStopLargo++; continue; }
+
+    /* ingresso alla barra successiva */
+    const nb = bars[i + 1];
+    if (!nb) continue;
+    const entrata = nb.o != null ? nb.o : nb.c;
+    const sgn = dir === 'LONG' ? 1 : -1;
+    open = {
+      t0: nb.t, dir, tipo,
+      entrata: +entrata.toFixed(2),
+      stop: +(entrata - sgn * risk).toFixed(2),
+      t1: +(entrata + sgn * risk).toFixed(2),
+      t2: +(entrata + sgn * 1.5 * risk).toFixed(2),
+      risk: +risk.toFixed(2),
+      oraIT: new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', weekday: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(nb.t * 1000))
+    };
+    lastT = nb.t;
+    perDay[b.dayKey] = (perDay[b.dayKey] || 0) + 1;
+  }
+  return out;
+}
+
+function pct(n, d) { return d ? Math.round(n / d * 100) : 0; }
+
+function renderBacktest(risultati) {
+  const box = document.getElementById('bt');
+  const tutti = [];
+  for (const r of risultati) for (const t of r.res.trades) tutti.push({ ...t, cfg: r.cfg });
+  const chiusi = tutti.filter(t => t.esito !== null && t.stato !== 'aperto-fine-dati');
+  if (!chiusi.length) {
+    box.innerHTML = '<h2>Backtest — le regole sui dati recenti</h2><div class="prose">Nei giorni coperti dai dati (' + risultati.map(r => r.cfg.nome + ': ' + r.res.barre + ' barre').join(' · ') + ') le regole non hanno generato nessuna operazione. È coerente col comportamento prudente del motore: pochi segnali, solo quando tutto è allineato. Riprova tra qualche giorno, quando ci saranno più dati di mercato aperto.</div>';
+    return;
+  }
+  const vinte = chiusi.filter(t => t.esito > 0);
+  const usdTot = chiusi.reduce((s, t) => s + t.esito * t.cfg.mult, 0);
+  const durMedia = Math.round(chiusi.reduce((s, t) => s + (t.durataMin || 0), 0) / chiusi.length);
+
+  /* osservazioni automatiche */
+  const oss = [];
+  const gruppi = {};
+  for (const t of chiusi) {
+    (gruppi[t.tipo] = gruppi[t.tipo] || []).push(t);
+    (gruppi[t.cfg.nome] = gruppi[t.cfg.nome] || []).push(t);
+  }
+  const wr = (arr) => pct(arr.filter(t => t.esito > 0).length, arr.length);
+  if (gruppi['trend'] && gruppi['ritorno alla media']) {
+    const a = wr(gruppi['trend']), b = wr(gruppi['ritorno alla media']);
+    oss.push('Segnali di trend: ' + a + '% vinti (' + gruppi['trend'].length + ' operazioni) · ritorno alla media: ' + b + '% (' + gruppi['ritorno alla media'].length + '). ' + (Math.abs(a - b) >= 25 && gruppi['trend'].length + gruppi['ritorno alla media'].length >= 8 ? 'Differenza netta: se si conferma nelle prossime settimane, conviene dare più peso al tipo che vince di più.' : 'Con così pochi dati la differenza non è ancora significativa.'));
+  }
+  for (const cfg of STRUMENTI) {
+    if (gruppi[cfg.nome] && gruppi[cfg.nome].length >= 2) {
+      const g = gruppi[cfg.nome];
+      const netUsd = g.reduce((s, t) => s + t.esito * cfg.mult, 0);
+      oss.push(cfg.nome + ': ' + g.length + ' operazioni, ' + wr(g) + '% vinte, risultato ' + (netUsd >= 0 ? '+' : '') + netUsd.toFixed(0) + '$.');
+    }
+  }
+  const scartati = risultati.reduce((s, r) => s + r.res.scartatiStopLargo, 0);
+  if (scartati > 0) oss.push(scartati + ' segnali sono stati scartati perché lo stop naturale superava i $60 di rischio: è il filtro di protezione che lavora. Se dovessero essere tantissimi rispetto alle operazioni aperte, si può valutare uno stop massimo più ampio con volume dimezzato.');
+  const scaduti = chiusi.filter(t => t.stato === 'scaduto');
+  if (scaduti.length >= 3) oss.push(scaduti.length + ' operazioni chiuse a tempo (né target né stop entro 6 ore): se il loro esito medio è vicino allo zero, il tempo massimo va bene; se è spesso negativo, meglio accorciarlo.');
+  const wrTot = pct(vinte.length, chiusi.length);
+  oss.push('Con target = stop (1:1) il pareggio è al 50%: questo test dice ' + wrTot + '%. ' + (chiusi.length < 10 ? 'Ma con ' + chiusi.length + ' operazioni è solo un assaggio: servono almeno 30-50 operazioni (qualche settimana di registro reale) per giudicare.' : (wrTot > 55 ? 'Sopra la soglia: incoraggiante, da confermare col registro reale.' : wrTot < 45 ? 'Sotto la soglia: se il registro reale confermerà, andranno riviste le regole (per esempio target a 1.2x o filtri più severi).' : 'Intorno al pareggio: servono i dati del registro reale per decidere.')));
+
+  box.innerHTML =
+    '<h2>Backtest — le regole sui dati recenti</h2>' +
+    '<div class="stats">' +
+      '<div class="stat"><div class="v">' + chiusi.length + '</div><div class="l">operazioni</div></div>' +
+      '<div class="stat"><div class="v ' + (wrTot >= 50 ? 'pos' : 'neu') + '">' + wrTot + '%</div><div class="l">vinte</div></div>' +
+      '<div class="stat"><div class="v ' + (usdTot >= 0 ? 'pos' : 'neg') + '">' + (usdTot >= 0 ? '+' : '') + usdTot.toFixed(0) + '$</div><div class="l">risultato</div></div>' +
+      '<div class="stat"><div class="v">' + durMedia + '\'</div><div class="l">durata media</div></div>' +
+    '</div>' +
+    '<ul class="oss">' + oss.map(o => '<li>' + esc(o) + '</li>').join('') + '</ul>' +
+    '<details><summary>Tutte le operazioni simulate (' + tutti.length + ')</summary>' +
+      tutti.map(t =>
+        '<div class="trow"><span class="quando">' + esc(t.oraIT) + '</span><span>' + esc(t.cfg.nome) + '</span>' +
+        '<span class="dir ' + t.dir + '">' + t.dir + '</span><span class="px">' + P(t.entrata) + '</span>' +
+        '<span style="color:var(--muted);font-size:11px;">' + esc(t.tipo) + '</span>' +
+        '<span class="esito ' + esc(t.stato) + '">' + (t.stato === 'aperto-fine-dati' ? 'APERTA A FINE DATI' : t.stato.toUpperCase()) + '</span>' +
+        (t.esito !== null ? '<span class="pts ' + (t.esito >= 0 ? 'pos' : 'neg') + '" style="margin-left:auto;">' + (t.esito >= 0 ? '+' : '') + P(t.esito) + ' pt (' + (t.esito >= 0 ? '+' : '') + (t.esito * t.cfg.mult).toFixed(0) + '$)</span>' : '') +
+        '</div>'
+      ).join('') +
+    '</details>';
+}
+
+/* ── DIARIO: sistema vs esecuzioni reali ── */
+let TRADES = [], ESEC = {};
+async function caricaDiario() {
+  const [rt, re] = await Promise.all([
+    fetch(SB_URL + '/rest/v1/trades?select=*&stato=neq.aperto&order=created_at.desc&limit=30', { headers: sbHeaders }),
+    fetch(SB_URL + '/rest/v1/esecuzioni?select=*', { headers: sbHeaders })
+  ]);
+  TRADES = rt.ok ? await rt.json() : [];
+  ESEC = {};
+  if (re.ok) for (const e of await re.json()) ESEC[e.trade_id] = e;
+  renderDiario();
+}
+
+function renderDiario() {
+  const box = document.getElementById('diario');
+  const cfgOf = (k) => STRUMENTI.find(s => s.key === k) || STRUMENTI[0];
+  if (!TRADES.length) {
+    box.innerHTML = '<h2>Diario — sistema vs le tue esecuzioni</h2><div class="prose">Ancora nessuna operazione chiusa nel registro. Quando il motore ne chiuderà qualcuna, qui potrai segnare quali hai eseguito davvero su MT5 e con che risultato in euro — così vedrai se la tua esecuzione tiene il passo del sistema.</div>';
+    return;
+  }
+  const fatte = TRADES.filter(t => ESEC[t.id] && ESEC[t.id].fatto);
+  const sysUsd = fatte.reduce((s, t) => s + (+t.esito_pts || 0) * cfgOf(t.strumento).mult, 0);
+  const tuoEur = fatte.reduce((s, t) => s + (ESEC[t.id].risultato_eur != null ? +ESEC[t.id].risultato_eur : 0), 0);
+  const dtf = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  box.innerHTML =
+    '<h2>Diario — sistema vs le tue esecuzioni</h2>' +
+    '<div class="hint">Per ogni operazione chiusa dal sistema: premi <b>Fatta ✓</b> se l\'hai eseguita anche tu su MT5 e scrivi il tuo risultato in euro (negativo se persa, es. -26). Si salva da solo.</div>' +
+    '<div class="stats">' +
+      '<div class="stat"><div class="v">' + fatte.length + '/' + TRADES.length + '</div><div class="l">eseguite da te</div></div>' +
+      '<div class="stat"><div class="v ' + (sysUsd >= 0 ? 'pos' : 'neg') + '">' + (sysUsd >= 0 ? '+' : '') + sysUsd.toFixed(0) + '$</div><div class="l">sistema (su quelle)</div></div>' +
+      '<div class="stat"><div class="v ' + (tuoEur >= 0 ? 'pos' : 'neg') + '">' + (tuoEur >= 0 ? '+' : '') + tuoEur.toFixed(0) + '€</div><div class="l">tu su MT5</div></div>' +
+    '</div>' +
+    TRADES.map(t => {
+      const cfg = cfgOf(t.strumento);
+      const e = ESEC[t.id];
+      const pts = +t.esito_pts || 0;
+      return '<div class="trow">' +
+        '<span class="quando">' + dtf.format(new Date(t.created_at)) + '</span>' +
+        '<span>' + esc(cfg.nome) + '</span>' +
+        '<span class="dir ' + esc(t.direzione) + '">' + esc(t.direzione) + '</span>' +
+        '<span class="esito ' + esc(t.stato) + '">' + esc(t.stato).toUpperCase() + '</span>' +
+        '<span class="pts ' + (pts >= 0 ? 'pos' : 'neg') + '">' + (pts >= 0 ? '+' : '') + P(pts) + ' pt</span>' +
+        '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' +
+          '<button class="fatta-btn ' + (e && e.fatto ? 'si' : '') + '" data-id="' + t.id + '">' + (e && e.fatto ? 'Fatta ✓' : 'Fatta?') + '</button>' +
+          (e && e.fatto ? '<input class="eur" type="number" step="0.01" placeholder="± €" data-id="' + t.id + '" value="' + (e.risultato_eur != null ? e.risultato_eur : '') + '">' : '') +
+        '</span>' +
+      '</div>';
+    }).join('');
+}
+
+async function salvaEsec(id, body) {
+  await fetch(SB_URL + '/rest/v1/esecuzioni', {
+    method: 'POST', headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ trade_id: id, aggiornato: new Date().toISOString(), ...body })
+  });
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('.fatta-btn');
+  if (!b) return;
+  const id = +b.dataset.id;
+  const era = ESEC[id] && ESEC[id].fatto;
+  ESEC[id] = { ...(ESEC[id] || {}), trade_id: id, fatto: !era };
+  await salvaEsec(id, { fatto: !era, risultato_eur: ESEC[id].risultato_eur != null ? ESEC[id].risultato_eur : null });
+  renderDiario();
+});
+let eurTimer = null;
+document.addEventListener('input', (e) => {
+  const inp = e.target.classList && e.target.classList.contains('eur') ? e.target : null;
+  if (!inp) return;
+  const id = +inp.dataset.id;
+  const v = inp.value === '' ? null : parseFloat(inp.value);
+  ESEC[id] = { ...(ESEC[id] || {}), trade_id: id, fatto: true, risultato_eur: v };
+  clearTimeout(eurTimer);
+  eurTimer = setTimeout(() => { salvaEsec(id, { fatto: true, risultato_eur: v }); renderDiario(); }, 800);
+});
+
+/* ── avvio ── */
+(async () => {
+  try {
+    const r = await fetch(SB_URL + '/functions/v1/es-data', { headers: sbHeaders });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    renderBacktest(STRUMENTI.map(cfg => ({ cfg, res: backtest(d[cfg.key === 'sp500' ? 'sp500' : 'xau'], cfg) })));
+  } catch (e) {
+    document.getElementById('bt').innerHTML = '<h2>Backtest</h2><div class="prose">Dati non disponibili (' + esc(String(e && e.message || e)) + '). Ricarica la pagina tra un minuto.</div>';
+  }
+  caricaDiario();
+})();
+</script>
+</body>
+</html>
