@@ -72,11 +72,13 @@
     border-radius: 8px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;
   }
   .fatta-btn.si { background: rgba(47,224,138,.12); color: var(--green); border-color: rgba(47,224,138,.35); }
-  input.eur {
-    width: 84px; background: var(--card2); border: 1px solid var(--border); color: var(--text);
-    border-radius: 8px; padding: 5px 8px; font-family: var(--mono); font-size: 12px; text-align: right;
+  .mio-riga { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; padding: 8px 0 2px 8px; border-left: 2px solid rgba(92,141,255,.35); margin: 6px 0 2px 4px; }
+  .mio-lbl { font-size: 10px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; text-transform: uppercase; letter-spacing: .5px; }
+  input.mio {
+    width: 92px; background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 6px 8px; font-family: var(--mono); font-size: 12.5px; text-align: right;
   }
-  input.eur:focus { outline: none; border-color: var(--blue); }
+  input.mio:focus { outline: none; border-color: var(--blue); }
   details { margin-top: 8px; }
   details summary { cursor: pointer; font-size: 12px; color: var(--muted); padding: 6px 0; }
   .foot { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.8; padding: 4px 0 12px; }
@@ -318,6 +320,11 @@ async function caricaDiario() {
   renderDiario();
 }
 
+function campo(id, nome, label, val, ph) {
+  return '<label class="mio-lbl">' + label +
+    '<input class="mio" type="text" inputmode="decimal" data-id="' + id + '" data-campo="' + nome + '" placeholder="' + ph + '" value="' + (val != null ? esc(val) : '') + '"></label>';
+}
+
 function renderDiario() {
   const box = document.getElementById('diario');
   const cfgOf = (k) => STRUMENTI.find(s => s.key === k) || STRUMENTI[0];
@@ -332,7 +339,7 @@ function renderDiario() {
 
   box.innerHTML =
     '<h2>Diario — sistema vs le tue esecuzioni</h2>' +
-    '<div class="hint">Per ogni operazione chiusa dal sistema: premi <b>Fatta ✓</b> se l\'hai eseguita anche tu su MT5 e scrivi il tuo risultato in euro (negativo se persa, es. -26). Si salva da solo.</div>' +
+    '<div class="hint">Premi <b>Fatta ✓</b> sulle operazioni che hai eseguito anche tu su MT5, poi compila i campi: a che prezzo e ora sei entrato, a che prezzo hai chiuso, e il risultato in euro (negativo se persa, es. <b>-26,50</b> — va bene anche la virgola). Si salva da solo appena esci dalla casella.</div>' +
     '<div class="stats">' +
       '<div class="stat"><div class="v">' + fatte.length + '/' + TRADES.length + '</div><div class="l">eseguite da te</div></div>' +
       '<div class="stat"><div class="v ' + (sysUsd >= 0 ? 'pos' : 'neg') + '">' + (sysUsd >= 0 ? '+' : '') + sysUsd.toFixed(0) + '$</div><div class="l">sistema (su quelle)</div></div>' +
@@ -340,46 +347,84 @@ function renderDiario() {
     '</div>' +
     TRADES.map(t => {
       const cfg = cfgOf(t.strumento);
-      const e = ESEC[t.id];
+      const e = ESEC[t.id] || {};
       const pts = +t.esito_pts || 0;
-      return '<div class="trow">' +
-        '<span class="quando">' + dtf.format(new Date(t.created_at)) + '</span>' +
-        '<span>' + esc(cfg.nome) + '</span>' +
-        '<span class="dir ' + esc(t.direzione) + '">' + esc(t.direzione) + '</span>' +
-        '<span class="esito ' + esc(t.stato) + '">' + esc(t.stato).toUpperCase() + '</span>' +
-        '<span class="pts ' + (pts >= 0 ? 'pos' : 'neg') + '">' + (pts >= 0 ? '+' : '') + P(pts) + ' pt</span>' +
-        '<span style="margin-left:auto;display:flex;gap:8px;align-items:center;">' +
-          '<button class="fatta-btn ' + (e && e.fatto ? 'si' : '') + '" data-id="' + t.id + '">' + (e && e.fatto ? 'Fatta ✓' : 'Fatta?') + '</button>' +
-          (e && e.fatto ? '<input class="eur" type="number" step="0.01" placeholder="± €" data-id="' + t.id + '" value="' + (e.risultato_eur != null ? e.risultato_eur : '') + '">' : '') +
-        '</span>' +
+      let mioHtml = '';
+      if (e.fatto) {
+        const en = e.entrata_mia != null ? +e.entrata_mia : null;
+        const ch = e.chiuso_mio != null ? +e.chiuso_mio : null;
+        const mioPts = (en != null && ch != null) ? (t.direzione === 'LONG' ? ch - en : en - ch) : null;
+        mioHtml = '<div class="mio-riga">' +
+          campo(t.id, 'entrata_mia', 'Entrata mia', e.entrata_mia, P(t.entrata)) +
+          campo(t.id, 'ora_entrata', 'Alle (ora)', e.ora_entrata, '12:40') +
+          campo(t.id, 'chiuso_mio', 'Chiusura mia', e.chiuso_mio, P(t.t1)) +
+          campo(t.id, 'risultato_eur', 'Risultato €', e.risultato_eur, '-26,50') +
+          (mioPts != null ? '<span class="pts ' + (mioPts >= 0 ? 'pos' : 'neg') + '" style="padding-bottom:6px;">' + (mioPts >= 0 ? '+' : '') + mioPts.toFixed(2) + ' pt tuoi <span style="color:var(--muted);font-weight:400;">(sistema: ' + (pts >= 0 ? '+' : '') + P(pts) + ')</span></span>' : '') +
+        '</div>';
+      }
+      return '<div class="trow" style="flex-direction:column;align-items:stretch;">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<span class="quando">' + dtf.format(new Date(t.created_at)) + '</span>' +
+          '<span>' + esc(cfg.nome) + '</span>' +
+          '<span class="dir ' + esc(t.direzione) + '">' + esc(t.direzione) + '</span>' +
+          '<span class="px">' + P(t.entrata) + ' → ' + (t.stato === 'target' ? P(t.t1) : t.stato === 'stop' ? P(t.stop) : '—') + '</span>' +
+          '<span class="esito ' + esc(t.stato) + '">' + esc(t.stato).toUpperCase() + '</span>' +
+          '<span class="pts ' + (pts >= 0 ? 'pos' : 'neg') + '">' + (pts >= 0 ? '+' : '') + P(pts) + ' pt</span>' +
+          '<button class="fatta-btn ' + (e.fatto ? 'si' : '') + '" data-id="' + t.id + '" style="margin-left:auto;">' + (e.fatto ? 'Fatta ✓' : 'Fatta?') + '</button>' +
+        '</div>' + mioHtml +
       '</div>';
     }).join('');
 }
 
-async function salvaEsec(id, body) {
+async function salvaEsec(id) {
+  const e = ESEC[id] || {};
   await fetch(SB_URL + '/rest/v1/esecuzioni', {
     method: 'POST', headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates' },
-    body: JSON.stringify({ trade_id: id, aggiornato: new Date().toISOString(), ...body })
+    body: JSON.stringify({
+      trade_id: id,
+      fatto: !!e.fatto,
+      risultato_eur: e.risultato_eur != null ? e.risultato_eur : null,
+      entrata_mia: e.entrata_mia != null ? e.entrata_mia : null,
+      ora_entrata: e.ora_entrata != null ? e.ora_entrata : null,
+      chiuso_mio: e.chiuso_mio != null ? e.chiuso_mio : null,
+      aggiornato: new Date().toISOString()
+    })
   });
 }
+
+/* ridisegna solo se non stai scrivendo in una casella */
+function renderSeLibero() {
+  const a = document.activeElement;
+  if (a && a.classList && a.classList.contains('mio')) return;
+  renderDiario();
+}
+
 document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('.fatta-btn');
   if (!b) return;
   const id = +b.dataset.id;
   const era = ESEC[id] && ESEC[id].fatto;
   ESEC[id] = { ...(ESEC[id] || {}), trade_id: id, fatto: !era };
-  await salvaEsec(id, { fatto: !era, risultato_eur: ESEC[id].risultato_eur != null ? ESEC[id].risultato_eur : null });
+  await salvaEsec(id);
   renderDiario();
 });
-let eurTimer = null;
-document.addEventListener('input', (e) => {
-  const inp = e.target.classList && e.target.classList.contains('eur') ? e.target : null;
+
+/* salvataggio SOLO quando esci dalla casella (evento change):
+   niente ridisegni mentre scrivi, e la virgola italiana è accettata */
+document.addEventListener('change', async (e) => {
+  const inp = e.target.classList && e.target.classList.contains('mio') ? e.target : null;
   if (!inp) return;
   const id = +inp.dataset.id;
-  const v = inp.value === '' ? null : parseFloat(inp.value);
-  ESEC[id] = { ...(ESEC[id] || {}), trade_id: id, fatto: true, risultato_eur: v };
-  clearTimeout(eurTimer);
-  eurTimer = setTimeout(() => { salvaEsec(id, { fatto: true, risultato_eur: v }); renderDiario(); }, 800);
+  const nome = inp.dataset.campo;
+  let v = inp.value.trim();
+  if (nome === 'ora_entrata') { v = v || null; }
+  else {
+    v = v === '' ? null : parseFloat(v.replace(',', '.'));
+    if (v !== null && isNaN(v)) v = null;
+  }
+  ESEC[id] = { ...(ESEC[id] || {}), trade_id: id, fatto: true, [nome]: v };
+  await salvaEsec(id);
+  renderSeLibero();
 });
 
 /* ── avvio ── */
