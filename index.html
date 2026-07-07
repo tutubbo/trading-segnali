@@ -180,6 +180,8 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const P = (n) => (+n).toFixed(2);
 
+/* Finestre orarie (minuti, ora di New York): segnali SOLO a mercato aperto,
+   niente pre e post market. US500 = borsa USA, Oro = sessione COMEX. */
 const STRUMENTI = [
   {
     key: 'sp500', boxId: 'inst-sp', nome: 'S&P 500', sym: 'SPX · US500',
@@ -187,7 +189,7 @@ const STRUMENTI = [
     multMicro: 5,
     riskMin: 4, riskMax: 12,
     mrDist: 8, glue: 2,
-    soloRTH: true
+    winStart: 570, winEnd: 960, orario: '15:30–22:00'
   },
   {
     key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD · GOLD',
@@ -195,11 +197,10 @@ const STRUMENTI = [
     multMicro: 10,
     riskMin: 2, riskMax: 6,
     mrDist: 4, glue: 1,
-    soloRTH: false
+    winStart: 500, winEnd: 810, orario: '14:20–19:30'
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
-const SCADENZA_ORE = 6;         /* chiusura a tempo (la gestisce il motore sul server) */
 
 /* ════════════════════════════════════════════════════════════════
    OROLOGIO E SESSIONE (ora di New York)
@@ -376,10 +377,11 @@ function analizza(d, cfg) {
     ageMin, azione: 'WAIT', fiducia: 'MEDIA', motivo: '', piano: null, tipo: ''
   };
 
-  if (sess.code === 'closed') { out.motivo = 'Mercato chiuso. Il motore riparte da solo alla riapertura.'; return out; }
-  if (cfg.soloRTH && !inRTH) { out.motivo = 'L\'indice S&P 500 si muove solo durante la sessione USA (15:30–22:00 italiane): il segnale si attiva lì.'; return out; }
+  if (nowET.day === 0 || nowET.day === 6) { out.motivo = 'Mercato chiuso (weekend). Il motore riparte lunedì.'; return out; }
+  if (nowMins < cfg.winStart || nowMins >= cfg.winEnd) { out.motivo = 'Fuori orario di mercato: segnali solo dalle ' + cfg.orario + ' (ora italiana) — niente pre e post market.'; return out; }
+  if (nowMins < cfg.winStart + 15) { out.motivo = 'Primi 15 minuti dall\'apertura: range in formazione, mai entrare subito.'; return out; }
+  if (nowMins >= cfg.winEnd - 40) { out.motivo = 'Ultima mezz\'ora di sessione: niente nuovi ingressi (le posizioni aperte si chiudono a fine orario).'; return out; }
   if (ageMin > 25) { out.motivo = 'Dati non aggiornati (ultimo dato di ' + (ageMin > 90 ? fmtDur(Math.round(ageMin)) : Math.round(ageMin) + ' min') + ' fa): niente segnale senza dati freschi.'; return out; }
-  if (inRTH && nowMins < 585) { out.motivo = 'Range di apertura in formazione (primi 15 minuti): mai entrare prima delle 15:45 italiane.'; return out; }
   if (vwap === null) { out.motivo = 'Prezzo medio di sessione non calcolabile.'; return out; }
 
   const macdLong = macd.line > macd.signal;
@@ -423,7 +425,6 @@ function analizza(d, cfg) {
   out.azione = dir;
   /* Target vicini: T1 alla stessa distanza dello stop (1:1), T2 a 1.5x */
   out.piano = { entrata: price, stop, risk, t1: price + sgn * 1.0 * risk, t2: price + sgn * 1.5 * risk };
-  if (sess.code !== 'rth') out.fiducia = 'BASSA';
   return out;
 }
 
@@ -476,7 +477,7 @@ function renderInst(a, cfg, open) {
       '<div class="row"><span class="lbl">Stop → campo S/L</span><span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(open.stop) + '</b> <span class="sub">−' + P(open.risk_pts) + ' pt = −' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
       '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">stessa distanza dello stop</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(open.t1) + '</b> <span class="sub">+' + P(open.risk_pts) + ' pt = +' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
       '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(open.t2) + '</b> <span class="sub">+' + P(1.5 * open.risk_pts) + ' pt = +' + USD(1.5 * +open.risk_pts, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Chiusura automatica</span><span class="sub">a target, a stop, o a tempo (' + SCADENZA_ORE + ' ore' + (cfg.soloRTH ? ' / fine sessione' : '') + ')</span></div>';
+      '<div class="row"><span class="lbl">Chiusura automatica</span><span class="sub">a target, a stop o a fine orario di mercato (' + cfg.orario + ' it.)</span></div>';
   } else {
     azione = a.azione === 'WAIT' || a.blocco ? 'WAIT' : a.azione;
     if (a.blocco) { pianoHtml = '<div class="noplan"><b>Niente trade adesso.</b><span class="why">' + esc(a.blocco) + '</span></div>'; }

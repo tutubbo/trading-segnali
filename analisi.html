@@ -117,9 +117,10 @@ const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Cont
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const P = (n) => (+n).toFixed(2);
 
+/* Finestre orarie (minuti, ora di New York) — solo mercato aperto, come il motore */
 const STRUMENTI = [
-  { key: 'sp500', nome: 'S&P 500', mult: 5, riskMin: 4, riskMax: 12, mrDist: 8, glue: 2, soloRTH: true },
-  { key: 'xau', nome: 'Oro', mult: 10, riskMin: 2, riskMax: 6, mrDist: 4, glue: 1, soloRTH: false }
+  { key: 'sp500', nome: 'S&P 500', mult: 5, riskMin: 4, riskMax: 12, mrDist: 8, glue: 2, soloRTH: true, winStart: 570, winEnd: 960, chiudiA: 950 },
+  { key: 'xau', nome: 'Oro', mult: 10, riskMin: 2, riskMax: 6, mrDist: 4, glue: 1, soloRTH: false, winStart: 500, winEnd: 810, chiudiA: 800 }
 ];
 
 /* ── indicatori e barre (identici al motore) ── */
@@ -174,18 +175,16 @@ function backtest(d, cfg) {
       let ch = null;
       if (long ? b.l <= open.stop : b.h >= open.stop) ch = { stato: 'stop', esito: long ? open.stop - open.entrata : open.entrata - open.stop };
       else if (long ? b.h >= open.t1 : b.l <= open.t1) ch = { stato: 'target', esito: long ? open.t1 - open.entrata : open.entrata - open.t1 };
-      else if (b.t - open.t0 > 6 * 3600 || (cfg.soloRTH && b.mins >= 950)) ch = { stato: 'scaduto', esito: long ? b.c - open.entrata : open.entrata - b.c };
+      else if (b.t - open.t0 > 6 * 3600 || b.mins >= cfg.chiudiA || b.mins < cfg.winStart) ch = { stato: 'scaduto', esito: long ? b.c - open.entrata : open.entrata - b.c };
       if (ch) { out.trades.push({ ...open, stato: ch.stato, esito: +ch.esito.toFixed(2), tEnd: b.t, durataMin: Math.round((b.t - open.t0) / 60) }); open = null; }
       continue;
     }
 
-    /* porte di sessione (le stesse del motore) */
-    if (cfg.soloRTH && !inRTH) continue;
-    if (!cfg.soloRTH) {
-      const chiuso = wd === 6 || (wd === 0 && b.mins < 1080) || (wd === 5 && b.mins >= 1020) || (b.mins >= 1020 && b.mins < 1080);
-      if (chiuso) continue;
-    }
-    if (inRTH && b.mins < 585) continue;
+    /* porte di sessione (le stesse del motore): solo mercato aperto, niente pre/post */
+    const inWin = wd !== 0 && wd !== 6 && b.mins >= cfg.winStart && b.mins < cfg.winEnd;
+    if (!inWin) continue;
+    if (b.mins < cfg.winStart + 15) continue;
+    if (b.mins >= cfg.chiudiA - 30) continue;   /* ultima mezz'ora: niente nuovi ingressi */
     if (b.t - lastT < 90 * 60) continue;
     if ((perDay[b.dayKey] || 0) >= 3) continue;
 
