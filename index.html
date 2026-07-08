@@ -189,7 +189,7 @@ const STRUMENTI = [
     multMicro: 5,
     riskMin: 4, riskMax: 12,
     mrDist: 8, glue: 2,
-    winStart: 570, winEnd: 960, orario: '15:30–22:00'
+    winStart: 570, winEnd: 960, orario: '15:30–22:00', orarioSegnali: '15:45–21:20'
   },
   {
     key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD · GOLD',
@@ -197,7 +197,7 @@ const STRUMENTI = [
     multMicro: 10,
     riskMin: 2, riskMax: 6,
     mrDist: 4, glue: 1,
-    winStart: 500, winEnd: 810, orario: '14:20–19:30'
+    winStart: 500, winEnd: 810, orario: '14:20–19:30', orarioSegnali: '14:35–18:50'
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
@@ -432,13 +432,18 @@ function analizza(d, cfg) {
    REGISTRO OPERAZIONI (database) — segnali congelati + esiti
    ════════════════════════════════════════════════════════════════ */
 let TRADES = [];
+let STATSREG = [];   /* totali storici (tutte le operazioni di sempre) */
 const DISPLAY = {};
 
 const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
 async function caricaTrades() {
-  const r = await fetch(SB_URL + '/rest/v1/trades?select=*&order=created_at.desc&limit=40', { headers: sbHeaders });
+  const [r, rs] = await Promise.all([
+    fetch(SB_URL + '/rest/v1/trades?select=*&order=created_at.desc&limit=40', { headers: sbHeaders }),
+    fetch(SB_URL + '/rest/v1/stats_registro?select=*', { headers: sbHeaders })
+  ]);
   if (r.ok) TRADES = await r.json();
+  if (rs.ok) STATSREG = await rs.json();
 }
 /* Aperture e chiusure le fa il MOTORE sul server, ogni minuto, anche a
    pagina chiusa — e manda le notifiche Telegram. La pagina mostra e basta. */
@@ -506,7 +511,9 @@ function renderInst(a, cfg, open) {
         '<div class="hero-price">' + P(a.price) + '</div>' +
       '</div>' +
       (heroExtra ? '<div style="margin-top:10px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">' + heroExtra + '</div>' : '') +
-      '<div class="hero-sub"><span class="live-dot"></span>' + (open ? 'operazione in corso · ' : 'fiducia ' + a.fiducia + ' · ') + esc(cfg.sizeNota) + '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
+      '<div class="hero-sub"><span class="live-dot"></span>' + (open ? 'operazione in corso · ' : 'fiducia ' + a.fiducia + ' · ') + esc(cfg.sizeNota) +
+        '<br>🕒 Segnali possibili: <b style="color:var(--text);">' + cfg.orarioSegnali + '</b> ora italiana · mercato aperto ' + cfg.orario +
+        '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
     '</div>' +
     '<div class="chips">' +
       '<div class="chip"><span class="dot ' + macdDot + '"></span>MACD <b>' + a.macd.hist.toFixed(2) + '</b></div>' +
@@ -565,22 +572,36 @@ function renderLog() {
     box.innerHTML = '<div class="card"><h2>Registro operazioni</h2><div class="prose" style="color:var(--muted);font-size:13px;">Ancora vuoto: il primo segnale che scatta viene registrato qui in automatico, con entrata, stop, target e — quando si chiude — l\'esito. Così vedi nero su bianco se il sistema funziona.</div></div>';
     return;
   }
-  const chiusi = TRADES.filter(t => t.stato !== 'aperto');
-  const vinte = chiusi.filter(t => +t.esito_pts > 0).length;
-  const usdTot = chiusi.reduce((s, t) => s + (+t.esito_pts) * cfgOf(t.strumento).multMicro, 0);
-  const winRate = chiusi.length ? Math.round(vinte / chiusi.length * 100) : 0;
+  /* Totali STORICI: contano tutte le operazioni di sempre (vista stats_registro),
+     non solo quelle mostrate sotto — così il bilancio si accumula negli anni. */
+  let chiuseTot = 0, vinteTot = 0, usdTot = 0, prima = null;
+  if (STATSREG.length) {
+    for (const s of STATSREG) {
+      chiuseTot += +s.chiuse; vinteTot += +s.vinte;
+      usdTot += (+s.punti) * cfgOf(s.strumento).multMicro;
+      if (s.prima && (!prima || new Date(s.prima) < prima)) prima = new Date(s.prima);
+    }
+  } else {
+    const chiusi = TRADES.filter(t => t.stato !== 'aperto');
+    chiuseTot = chiusi.length;
+    vinteTot = chiusi.filter(t => +t.esito_pts > 0).length;
+    usdTot = chiusi.reduce((s, t) => s + (+t.esito_pts) * cfgOf(t.strumento).multMicro, 0);
+  }
+  const winRate = chiuseTot ? Math.round(vinteTot / chiuseTot * 100) : 0;
+  const dal = prima ? new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(prima) : '';
 
   const statoLbl = { aperto: 'APERTA', target: 'TARGET ✓', stop: 'STOP ✗', scaduto: 'A TEMPO' };
   const dtf = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   box.innerHTML =
-    '<div class="card"><h2 style="display:flex;align-items:center;gap:10px;">Registro operazioni <span style="font-weight:400;letter-spacing:0;text-transform:none;">(automatico — anche se non le esegui su MT5)</span>' +
+    '<div class="card"><h2 style="display:flex;align-items:center;gap:10px;">Registro operazioni <span style="font-weight:400;letter-spacing:0;text-transform:none;">(storico completo' + (dal ? ' dal ' + dal : '') + ' — si accumula per sempre)</span>' +
       '<button class="wipe" id="btnSvuota">🗑 Svuota</button></h2>' +
     '<div class="stats">' +
-      '<div class="stat"><div class="v">' + chiusi.length + '</div><div class="l">chiuse</div></div>' +
-      '<div class="stat"><div class="v" style="color:' + (winRate >= 50 ? 'var(--green)' : 'var(--amber)') + '">' + winRate + '%</div><div class="l">vinte</div></div>' +
-      '<div class="stat"><div class="v ' + (usdTot >= 0 ? 'pts pos' : 'pts neg') + '" style="color:' + (usdTot >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (usdTot >= 0 ? '+' : '') + usdTot.toFixed(0) + '$</div><div class="l">risultato totale</div></div>' +
+      '<div class="stat"><div class="v">' + chiuseTot + '</div><div class="l">operazioni chiuse</div></div>' +
+      '<div class="stat"><div class="v" style="color:' + (winRate >= 50 ? 'var(--green)' : 'var(--amber)') + '">' + winRate + '%</div><div class="l">vinte (storico)</div></div>' +
+      '<div class="stat"><div class="v ' + (usdTot >= 0 ? 'pts pos' : 'pts neg') + '" style="color:' + (usdTot >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (usdTot >= 0 ? '+' : '') + usdTot.toFixed(0) + '$</div><div class="l">bilancio totale</div></div>' +
     '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Ultime 15 operazioni (i totali qui sopra contano tutto lo storico):</div>' +
     TRADES.slice(0, 15).map(t => {
       const cfg = cfgOf(t.strumento);
       const pts = t.esito_pts !== null && t.esito_pts !== undefined ? +t.esito_pts : null;
