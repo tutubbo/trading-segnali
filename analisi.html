@@ -120,7 +120,7 @@ const P = (n) => (+n).toFixed(2);
 /* Finestre orarie (minuti, ora di New York) — solo mercato aperto, come il motore */
 const STRUMENTI = [
   { key: 'sp500', nome: 'S&P 500', mult: 5, riskMin: 4, riskMax: 12, mrDist: 8, glue: 2, soloRTH: true, winStart: 570, winEnd: 960, chiudiA: 950 },
-  { key: 'xau', nome: 'Oro', mult: 10, riskMin: 2, riskMax: 6, mrDist: 4, glue: 1, soloRTH: false, winStart: 500, winEnd: 810, chiudiA: 800 }
+  { key: 'xau', nome: 'Oro', mult: 10, riskMin: 2, riskMax: 6, mrDist: 4, glue: 1, soloRTH: true, winStart: 570, winEnd: 960, chiudiA: 950 }
 ];
 
 /* ── indicatori e barre (identici al motore) ── */
