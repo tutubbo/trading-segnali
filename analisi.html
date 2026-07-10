@@ -153,7 +153,57 @@ function toBars(d) {
 }
 const wdOf = (k) => new Date(k + 'T12:00:00Z').getUTCDay();
 
-/* ── BACKTEST: rigioca le regole barra per barra ── */
+/* Raggruppa le barre da 5 minuti in barre più lunghe (identica al motore) */
+function aggrega(bars, tf) {
+  if (tf <= 5) return bars;
+  const out = [];
+  let cur = null;
+  for (const b of bars) {
+    const slot = Math.floor(b.mins / tf);
+    if (!cur || cur.slot !== slot || cur.dayKey !== b.dayKey) {
+      if (cur) out.push(cur);
+      cur = { slot, t: b.t, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, mins: slot * tf, dayKey: b.dayKey };
+    } else {
+      cur.h = Math.max(cur.h, b.h); cur.l = Math.min(cur.l, b.l); cur.c = b.c; cur.v += b.v; cur.t = b.t;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/* Cerca un setup su un timeframe, con i dati disponibili fino alla barra corrente */
+function setupTF(fino, price, cfg, tf) {
+  const bars = aggrega(fino, tf);
+  if (bars.length < 40) return null;
+  const oggi = bars[bars.length - 1].dayKey;
+  const sess = bars.filter(b => b.dayKey === oggi && b.mins >= cfg.winStart && b.mins < cfg.winEnd);
+  const vwapBars = sess.length >= 2 ? sess : bars.slice(-30);
+  let pv = 0, vv = 0, ts = 0;
+  for (const x of vwapBars) { const tp = (x.h + x.l + x.c) / 3; pv += tp * x.v; vv += x.v; ts += tp; }
+  const vwap = vv > 0 ? pv / vv : ts / vwapBars.length;
+
+  const closes = bars.slice(-200).map(x => x.c);
+  const macd = macdOf(closes);
+  const rsi = rsiOf(closes.slice(-80), 14);
+  const dist = price - vwap;
+  const macdLong = macd.line > macd.signal;
+
+  let dir = null, tipo = '';
+  if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; tipo = 'ritorno alla media'; }
+  else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; tipo = 'ritorno alla media'; }
+  else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) { dir = 'LONG'; tipo = 'trend'; }
+  else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) { dir = 'SHORT'; tipo = 'trend'; }
+  if (!dir) return null;
+
+  const rec = bars.slice(-(tf >= 15 ? 3 : 6));
+  let risk;
+  if (dir === 'LONG') risk = price - (Math.min(...rec.map(x => x.l)) - 0.5);
+  else risk = (Math.max(...rec.map(x => x.h)) + 0.5) - price;
+  if (risk < cfg.riskMin) risk = cfg.riskMin;
+  return { dir, tipo, tf, risk };
+}
+
+/* ── BACKTEST: rigioca le regole barra per barra, 15 min poi 5 min ── */
 function backtest(d, cfg) {
   const out = { trades: [], scartatiStopLargo: 0, barre: 0 };
   if (!d || d.error) return out;
@@ -167,7 +217,6 @@ function backtest(d, cfg) {
   for (let i = 60; i < bars.length; i++) {
     const b = bars[i];
     const wd = wdOf(b.dayKey);
-    const inRTH = b.mins >= 570 && b.mins < 960 && wd !== 0 && wd !== 6;
 
     /* gestione operazione aperta */
     if (open) {
@@ -188,40 +237,17 @@ function backtest(d, cfg) {
     if (b.t - lastT < 90 * 60) continue;
     if ((perDay[b.dayKey] || 0) >= 3) continue;
 
-    /* indicatori alla barra i */
-    const closes = bars.slice(Math.max(0, i - 200), i + 1).map(x => x.c);
-    if (closes.length < 60) continue;
-    const macd = macdOf(closes);
-    const rsi = rsiOf(closes.slice(-80), 14);
-
-    /* media di sessione: dall'apertura RTH del giorno (indice) o dalle 18:00 NY (oro) */
-    let j = i;
-    while (j > 0 && i - j < 300) {
-      const pb = bars[j - 1], cb = bars[j];
-      if (inRTH && cfg.soloRTH) { if (cb.dayKey === b.dayKey && cb.mins >= 570 && (pb.mins < 570 || pb.dayKey !== b.dayKey)) break; }
-      else { if (cb.mins >= 1080 && (pb.mins < 1080 || pb.dayKey !== cb.dayKey)) break; }
-      j--;
-    }
-    const sess = bars.slice(Math.max(0, j), i + 1);
-    let pv = 0, vv = 0, ts = 0;
-    for (const x of sess) { const tp = (x.h + x.l + x.c) / 3; pv += tp * x.v; vv += x.v; ts += tp; }
-    const vwap = vv > 0 ? pv / vv : ts / sess.length;
-
+    /* prova prima il timeframe lungo, poi quello corto */
     const price = b.c;
-    const dist = price - vwap;
-    const macdLong = macd.line > macd.signal;
-    let dir = null, tipo = '';
-    if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; tipo = 'ritorno alla media'; }
-    else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; tipo = 'ritorno alla media'; }
-    else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) { dir = 'LONG'; tipo = 'trend'; }
-    else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) { dir = 'SHORT'; tipo = 'trend'; }
-    if (!dir) continue;
-
-    const rec = bars.slice(i - 5, i + 1);
-    let risk;
-    if (dir === 'LONG') risk = price - (Math.min(...rec.map(x => x.l)) - 0.5);
-    else risk = (Math.max(...rec.map(x => x.h)) + 0.5) - price;
-    if (risk < cfg.riskMin) risk = cfg.riskMin;
+    const fino = bars.slice(Math.max(0, i - 600), i + 1);
+    let s = null;
+    for (const tf of [15, 5]) {
+      const cand = setupTF(fino, price, cfg, tf);
+      if (cand) { s = cand; break; }
+    }
+    if (!s) continue;
+    const dir = s.dir, tipo = s.tipo + ' · ' + s.tf + ' min';
+    let risk = s.risk;
     if (risk > cfg.riskMax) { out.scartatiStopLargo++; continue; }
 
     /* ingresso alla barra successiva */
@@ -230,7 +256,7 @@ function backtest(d, cfg) {
     const entrata = nb.o != null ? nb.o : nb.c;
     const sgn = dir === 'LONG' ? 1 : -1;
     open = {
-      t0: nb.t, dir, tipo,
+      t0: nb.t, dir, tipo, tf: s.tf, famiglia: s.tipo,
       entrata: +entrata.toFixed(2),
       stop: +(entrata - sgn * risk).toFixed(2),
       t1: +(entrata + sgn * risk).toFixed(2),
@@ -263,10 +289,20 @@ function renderBacktest(risultati) {
   const oss = [];
   const gruppi = {};
   for (const t of chiusi) {
-    (gruppi[t.tipo] = gruppi[t.tipo] || []).push(t);
+    (gruppi[t.famiglia] = gruppi[t.famiglia] || []).push(t);
+    (gruppi['tf' + t.tf] = gruppi['tf' + t.tf] || []).push(t);
     (gruppi[t.cfg.nome] = gruppi[t.cfg.nome] || []).push(t);
   }
   const wr = (arr) => pct(arr.filter(t => t.esito > 0).length, arr.length);
+  const durata = (arr) => Math.round(arr.reduce((s, t) => s + (t.durataMin || 0), 0) / arr.length);
+  if (gruppi['tf15'] || gruppi['tf5']) {
+    const g15 = gruppi['tf15'] || [], g5 = gruppi['tf5'] || [];
+    oss.push('Timeframe 15 minuti: ' + (g15.length ? g15.length + ' operazioni, ' + wr(g15) + '% vinte, durata media ' + durata(g15) + ' min' : 'nessuna operazione') +
+      ' · Timeframe 5 minuti: ' + (g5.length ? g5.length + ' operazioni, ' + wr(g5) + '% vinte, durata media ' + durata(g5) + ' min' : 'nessuna operazione') +
+      '. ' + (g15.length >= 8 && g5.length >= 8
+        ? (wr(g15) > wr(g5) + 10 ? 'Il timeframe lungo sta rendendo meglio: il motore lo prova già per primo.' : wr(g5) > wr(g15) + 10 ? 'Qui vince il 5 minuti: se si conferma, si può togliere la priorità al 15.' : 'Rendimento simile: il 15 minuti resta preferibile perché dà operazioni più lunghe e meno rumore.')
+        : 'Servono più operazioni per confrontarli davvero.'));
+  }
   if (gruppi['trend'] && gruppi['ritorno alla media']) {
     const a = wr(gruppi['trend']), b = wr(gruppi['ritorno alla media']);
     oss.push('Segnali di trend: ' + a + '% vinti (' + gruppi['trend'].length + ' operazioni) · ritorno alla media: ' + b + '% (' + gruppi['ritorno alla media'].length + '). ' + (Math.abs(a - b) >= 25 && gruppi['trend'].length + gruppi['ritorno alla media'].length >= 8 ? 'Differenza netta: se si conferma nelle prossime settimane, conviene dare più peso al tipo che vince di più.' : 'Con così pochi dati la differenza non è ancora significativa.'));

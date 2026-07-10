@@ -163,7 +163,7 @@
   <div id="claude"></div>
 
   <div class="foot">
-    <div class="rules">Rischio max $20–60 a trade · massimo 3 operazioni al giorno per strumento · pausa 90 min tra un segnale e l'altro · mai in posizione durante CPI, NFP o FOMC</div>
+    <div class="rules">Rischio max $20–60 a trade · una sola operazione aperta alla volta · almeno 20 min tra due segnali · massimo 3 al giorno per strumento · mai in posizione durante CPI, NFP o FOMC</div>
     Solo paper trading educativo — non è consulenza finanziaria. Il prezzo della tua piattaforma può differire di qualche
     punto: usa la casella di calibrazione. I mercati a leva possono farti perdere più del deposito.
   </div>
@@ -185,7 +185,8 @@ const P = (n) => (+n).toFixed(2);
 const STRUMENTI = [
   {
     key: 'sp500', boxId: 'inst-sp', nome: 'S&P 500', sym: 'SPX · US500',
-    sizeNota: '$5 per punto (5 lotti US500Cash o 1 MES)',
+    sizeNota: '$5 per punto (1 punto = $5)',
+    lotti: '5.00',
     multMicro: 5,
     riskMin: 4, riskMax: 12,
     mrDist: 8, glue: 2,
@@ -193,7 +194,8 @@ const STRUMENTI = [
   },
   {
     key: 'xau', boxId: 'inst-xau', nome: 'Oro spot', sym: 'XAU/USD · GOLD',
-    sizeNota: '$10 per punto (0.10 lotti GOLD o 1 MGC)',
+    sizeNota: '$10 per punto (1 punto = $10)',
+    lotti: '0.10',
     multMicro: 10,
     riskMin: 2, riskMax: 6,
     mrDist: 4, glue: 1,
@@ -201,6 +203,7 @@ const STRUMENTI = [
   }
 ];
 const USD = (pts, mult) => '$' + (pts * mult).toFixed(2).replace(/\.00$/, '');
+const TF = [15, 5];   /* prova prima il timeframe lungo (operazioni più lunghe) */
 
 /* ════════════════════════════════════════════════════════════════
    OROLOGIO E SESSIONE (ora di New York)
@@ -312,6 +315,74 @@ function toBars(d) {
 }
 const wdOf = (dayKey) => new Date(dayKey + 'T12:00:00Z').getUTCDay();
 
+/* Raggruppa le barre da 5 minuti in barre più lunghe (es. 15 minuti) */
+function aggrega(bars, tf) {
+  if (tf <= 5) return bars;
+  const out = [];
+  let cur = null;
+  for (const b of bars) {
+    const slot = Math.floor(b.mins / tf);
+    if (!cur || cur.slot !== slot || cur.dayKey !== b.dayKey) {
+      if (cur) out.push(cur);
+      cur = { slot, t: b.t, h: b.h, l: b.l, c: b.c, v: b.v, mins: slot * tf, dayKey: b.dayKey };
+    } else {
+      cur.h = Math.max(cur.h, b.h); cur.l = Math.min(cur.l, b.l); cur.c = b.c; cur.v += b.v; cur.t = b.t;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/* Cerca un setup su un singolo timeframe */
+function segnaleTF(bars5, price, cfg, tf) {
+  const bars = aggrega(bars5, tf);
+  if (bars.length < 40) return { motivo: 'barre insufficienti su ' + tf + ' min' };
+
+  const todayET = etFmt.formatToParts(new Date()).reduce((a, p) => { a[p.type] = p.value; return a; }, {});
+  const tk = todayET.year + '-' + todayET.month + '-' + todayET.day;
+  const winToday = bars.filter(b => b.dayKey === tk && b.mins >= cfg.winStart && b.mins < cfg.winEnd);
+  const vwapBars = winToday.length >= 2 ? winToday : bars.slice(-30);
+  let pv = 0, vv = 0, ts = 0;
+  for (const b of vwapBars) { const tp = (b.h + b.l + b.c) / 3; pv += tp * b.v; vv += b.v; ts += tp; }
+  const vwap = vv > 0 ? pv / vv : (vwapBars.length ? ts / vwapBars.length : null);
+  if (vwap === null) return { motivo: 'media non calcolabile' };
+
+  const closes = bars.slice(-200).map(b => b.c);
+  const macd = macdOf(closes);
+  const rsi = rsiOf(closes.slice(-80), 14);
+  const dist = price - vwap;
+  const macdLong = macd.line > macd.signal;
+
+  let dir = null, tipo = '';
+  if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; tipo = 'ritorno alla media (ipercomprato)'; }
+  else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; tipo = 'ritorno alla media (ipervenduto)'; }
+  else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) { dir = 'LONG'; tipo = 'trend rialzista confermato'; }
+  else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) { dir = 'SHORT'; tipo = 'trend ribassista confermato'; }
+  if (!dir) {
+    const perche = [];
+    if (Math.abs(dist) < cfg.glue) perche.push('prezzo incollato alla media (' + tf + ' min)');
+    else if (price > vwap && !macdLong) perche.push('prezzo sopra la media ma MACD ribassista su ' + tf + ' min');
+    else if (price < vwap && macdLong) perche.push('prezzo sotto la media ma MACD rialzista su ' + tf + ' min');
+    if (!perche.length) perche.push('condizioni non allineate su ' + tf + ' min');
+    return { motivo: perche.join('; ') };
+  }
+
+  /* stop sullo swing recente: 6 barre su 5 min (30'), 3 barre su 15 min (45') */
+  const rec = bars.slice(-(tf >= 15 ? 3 : 6));
+  let stop, risk;
+  if (dir === 'LONG') { stop = Math.min(...rec.map(b => b.l)) - 0.5; risk = price - stop; }
+  else { stop = Math.max(...rec.map(b => b.h)) + 0.5; risk = stop - price; }
+  if (risk < cfg.riskMin) { risk = cfg.riskMin; stop = dir === 'LONG' ? price - risk : price + risk; }
+  if (risk > cfg.riskMax) return { motivo: 'setup ' + tipo + ' su ' + tf + ' min, ma lo stop naturale è a ' + risk.toFixed(2) + ' punti (' + USD(risk, cfg.multMicro) + '): oltre il limite di $60' };
+
+  const sgn = dir === 'LONG' ? 1 : -1;
+  return {
+    dir, tf, tipo: tipo + ' · ' + tf + ' min',
+    fiducia: tf >= 15 ? 'ALTA' : 'MEDIA',
+    piano: { entrata: price, stop, risk, t1: price + sgn * risk, t2: price + sgn * 1.5 * risk }
+  };
+}
+
 /* ════════════════════════════════════════════════════════════════
    MOTORE DEL SEGNALE — regole SIGNAL DECK (parametrizzato)
    ════════════════════════════════════════════════════════════════ */
@@ -384,47 +455,18 @@ function analizza(d, cfg) {
   if (ageMin > 25) { out.motivo = 'Dati non aggiornati (ultimo dato di ' + (ageMin > 90 ? fmtDur(Math.round(ageMin)) : Math.round(ageMin) + ' min') + ' fa): niente segnale senza dati freschi.'; return out; }
   if (vwap === null) { out.motivo = 'Prezzo medio di sessione non calcolabile.'; return out; }
 
-  const macdLong = macd.line > macd.signal;
-  const expanding = Math.abs(macd.hist) > Math.abs(macd.histPrev);
-
-  let dir = null;
-  if (rsi >= 70 && dist >= cfg.mrDist) { dir = 'SHORT'; out.tipo = 'ritorno alla media (ipercomprato)'; out.fiducia = 'MEDIA'; }
-  else if (rsi <= 30 && dist <= -cfg.mrDist) { dir = 'LONG'; out.tipo = 'ritorno alla media (ipervenduto)'; out.fiducia = 'MEDIA'; }
-  else if (price > vwap && macdLong && macd.hist > 0 && rsi >= 45 && rsi <= 68) {
-    dir = 'LONG'; out.tipo = 'trend rialzista confermato';
-    out.fiducia = expanding && rsi <= 62 ? 'ALTA' : 'MEDIA';
+  /* prova prima il timeframe lungo (15 min), poi quello corto (5 min) */
+  const motivi = [];
+  for (const tf of TF) {
+    const s = segnaleTF(bars, price, cfg, tf);
+    if (s.piano) {
+      out.azione = s.dir; out.tipo = s.tipo; out.fiducia = s.fiducia;
+      out.piano = s.piano; out.tf = s.tf;
+      return out;
+    }
+    motivi.push(s.motivo);
   }
-  else if (price < vwap && !macdLong && macd.hist < 0 && rsi >= 32 && rsi <= 55) {
-    dir = 'SHORT'; out.tipo = 'trend ribassista confermato';
-    out.fiducia = expanding && rsi >= 38 ? 'ALTA' : 'MEDIA';
-  }
-
-  if (!dir) {
-    const perche = [];
-    if (Math.abs(dist) < cfg.glue) perche.push('prezzo incollato alla media di sessione (nessuna direzione)');
-    else if (price > vwap && !macdLong) perche.push('prezzo sopra la media ma MACD ribassista: segnali in disaccordo');
-    else if (price < vwap && macdLong) perche.push('prezzo sotto la media ma MACD rialzista: segnali in disaccordo');
-    if (rsi > 68 && dist < cfg.mrDist) perche.push('RSI ipercomprato (' + rsi.toFixed(0) + ') ma non abbastanza lontano dalla media per il ritorno');
-    if (rsi < 32 && dist > -cfg.mrDist) perche.push('RSI ipervenduto (' + rsi.toFixed(0) + ') ma non abbastanza lontano dalla media per il ritorno');
-    if (!perche.length) perche.push('condizioni non tutte allineate (MACD, RSI e media di sessione devono confermarsi a vicenda)');
-    out.motivo = perche.join('; ') + '.';
-    return out;
-  }
-
-  const recenti = bars.slice(-6);
-  let stop, risk;
-  if (dir === 'LONG') { stop = Math.min(...recenti.map(b => b.l)) - 0.5; risk = price - stop; }
-  else { stop = Math.max(...recenti.map(b => b.h)) + 0.5; risk = stop - price; }
-  if (risk < cfg.riskMin) { risk = cfg.riskMin; stop = dir === 'LONG' ? price - risk : price + risk; }
-  if (risk > cfg.riskMax) {
-    out.motivo = 'Setup ' + out.tipo + ' presente, ma lo stop naturale è a ' + risk.toFixed(2) +
-      ' punti (' + USD(risk, cfg.multMicro) + ' di rischio): oltre il limite di $60. Trade troppo rischioso = WAIT.';
-    return out;
-  }
-  const sgn = dir === 'LONG' ? 1 : -1;
-  out.azione = dir;
-  /* Target vicini: T1 alla stessa distanza dello stop (1:1), T2 a 1.5x */
-  out.piano = { entrata: price, stop, risk, t1: price + sgn * 1.0 * risk, t2: price + sgn * 1.5 * risk };
+  out.motivo = motivi.join('; ') + '.';
   return out;
 }
 
@@ -476,6 +518,7 @@ function renderInst(a, cfg, open) {
     heroExtra = '<span class="attivo-tag">OPERAZIONE ATTIVA dalle ' + da + '</span> ' +
       '<span class="pts ' + plCls + '" style="font-family:var(--mono);font-weight:800;">' + (pl >= 0 ? '+' : '') + pl + ' pt (' + (pl >= 0 ? '+' : '−') + USD(Math.abs(pl), cfg.multMicro).slice(1) + '$)</span>';
     pianoHtml =
+      '<div class="row" style="background:rgba(92,141,255,.07);border-radius:8px;padding:8px 10px;"><span class="lbl">📦 Lotti da inserire su MT5</span><b style="font-size:16px;color:var(--blue);">' + cfg.lotti + '</b></div>' +
       '<div class="row"><span class="lbl">Prezzo sul tuo broker <span class="sub">correggilo se diverso</span></span>' +
         '<input class="cal" type="number" step="0.01" inputmode="decimal" data-key="' + cfg.key + '" data-base="' + a.price + '" value="' + (a.price + off).toFixed(2) + '"></div>' +
       '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(open.tipo || '') + ') — congelata</span></span><b id="px-' + cfg.key + '-e">' + adj(open.entrata) + '</b></div>' +
@@ -511,7 +554,7 @@ function renderInst(a, cfg, open) {
         '<div class="hero-price">' + P(a.price) + '</div>' +
       '</div>' +
       (heroExtra ? '<div style="margin-top:10px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">' + heroExtra + '</div>' : '') +
-      '<div class="hero-sub"><span class="live-dot"></span>' + (open ? 'operazione in corso · ' : 'fiducia ' + a.fiducia + ' · ') + esc(cfg.sizeNota) +
+      '<div class="hero-sub"><span class="live-dot"></span>' + (open ? 'operazione in corso · ' : 'fiducia ' + a.fiducia + ' · ') + '📦 ' + cfg.lotti + ' lotti · ' + esc(cfg.sizeNota) +
         '<br>🕒 Segnali possibili: <b style="color:var(--text);">' + cfg.orarioSegnali + '</b> ora italiana · mercato aperto ' + cfg.orario +
         '<br>aggiornato alle ' + oraIT + ' · ultimo dato ' + eta + ' fa</div>' +
     '</div>' +
@@ -629,11 +672,14 @@ async function aggiornaLive() {
     if (!rd.ok) throw new Error('HTTP ' + rd.status);
     const d = await rd.json();
 
+    const apertaAltrove = TRADES.find(t => t.stato === 'aperto');
     for (const cfg of STRUMENTI) {
       const a = analizza(d[cfg.key], cfg);
       const open = TRADES.find(t => t.strumento === cfg.key && t.stato === 'aperto');
       if (!open && !a.errore && a.piano) {
-        a.blocco = 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato: il motore sul server lo sta confermando — se regge qualche minuto apre l\'operazione e manda la notifica Telegram.';
+        a.blocco = apertaAltrove
+          ? 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato, ma c\'è già un\'operazione aperta su ' + (STRUMENTI.find(s => s.key === apertaAltrove.strumento) || {}).nome + ': si opera una posizione alla volta.'
+          : 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato: il motore sul server lo sta confermando — se regge qualche minuto apre l\'operazione e manda la notifica Telegram.';
       }
       renderInst(a, cfg, open);
     }
