@@ -679,7 +679,7 @@ async function aggiornaLive() {
       if (!open && !a.errore && a.piano) {
         a.blocco = apertaAltrove
           ? 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato, ma c\'è già un\'operazione aperta su ' + (STRUMENTI.find(s => s.key === apertaAltrove.strumento) || {}).nome + ': si opera una posizione alla volta.'
-          : 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato: il motore sul server lo sta confermando — se regge qualche minuto apre l\'operazione e manda la notifica Telegram.';
+          : 'Segnale ' + a.azione + ' (' + a.tipo + ') rilevato: il motore sul server sta per aprirlo e mandare la notifica Telegram' + (cfg.key === 'xau' ? ' (l\'oro scatta subito).' : ' se regge la conferma.');
       }
       renderInst(a, cfg, open);
     }
