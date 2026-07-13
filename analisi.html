@@ -235,7 +235,7 @@ function backtest(d, cfg) {
     if (b.mins < cfg.winStart + 15) continue;
     if (b.mins >= cfg.chiudiA - 30) continue;   /* ultima mezz'ora: niente nuovi ingressi */
     if (b.t - lastT < 90 * 60) continue;
-    if ((perDay[b.dayKey] || 0) >= 3) continue;
+    if ((perDay[b.dayKey] || 0) >= 8) continue;
 
     /* prova prima il timeframe lungo, poi quello corto */
     const price = b.c;
