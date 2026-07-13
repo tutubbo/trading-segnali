@@ -379,7 +379,7 @@ function segnaleTF(bars5, price, cfg, tf) {
   return {
     dir, tf, tipo: tipo + ' · ' + tf + ' min',
     fiducia: tf >= 15 ? 'ALTA' : 'MEDIA',
-    piano: { entrata: price, stop, risk, t1: price + sgn * risk, t2: price + sgn * 1.5 * risk }
+    piano: { entrata: price, stop, risk, t1: price + sgn * 1.5 * risk, t2: price + sgn * 2.5 * risk }
   };
 }
 
@@ -523,8 +523,8 @@ function renderInst(a, cfg, open) {
         '<input class="cal" type="number" step="0.01" inputmode="decimal" data-key="' + cfg.key + '" data-base="' + a.price + '" value="' + (a.price + off).toFixed(2) + '"></div>' +
       '<div class="row"><span class="lbl">Entrata <span class="sub">(' + esc(open.tipo || '') + ') — congelata</span></span><b id="px-' + cfg.key + '-e">' + adj(open.entrata) + '</b></div>' +
       '<div class="row"><span class="lbl">Stop → campo S/L</span><span><b style="color:var(--red)" id="px-' + cfg.key + '-s">' + adj(open.stop) + '</b> <span class="sub">−' + P(open.risk_pts) + ' pt = −' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">stessa distanza dello stop</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(open.t1) + '</b> <span class="sub">+' + P(open.risk_pts) + ' pt = +' + USD(+open.risk_pts, cfg.multMicro) + '</span></span></div>' +
-      '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(open.t2) + '</b> <span class="sub">+' + P(1.5 * open.risk_pts) + ' pt = +' + USD(1.5 * +open.risk_pts, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 1 → T/P <span class="sub">1,5× lo stop</span></span><span><b style="color:var(--green)" id="px-' + cfg.key + '-1">' + adj(open.t1) + '</b> <span class="sub">+' + P(1.5 * open.risk_pts) + ' pt = +' + USD(1.5 * +open.risk_pts, cfg.multMicro) + '</span></span></div>' +
+      '<div class="row"><span class="lbl">Target 2 → T/P</span><span><b style="color:var(--green)" id="px-' + cfg.key + '-2">' + adj(open.t2) + '</b> <span class="sub">+' + P(2.5 * open.risk_pts) + ' pt = +' + USD(2.5 * +open.risk_pts, cfg.multMicro) + '</span></span></div>' +
       '<div class="row"><span class="lbl">Chiusura automatica</span><span class="sub">a target, a stop o a fine orario di mercato (' + cfg.orario + ' it.)</span></div>';
   } else {
     azione = a.azione === 'WAIT' || a.blocco ? 'WAIT' : a.azione;
